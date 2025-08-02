@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Search, MapPin, Calendar, Tag, AlertCircle, Map, Plus, ArrowLeft } from "lucide-react"
+import { Search, MapPin, Calendar, Tag, AlertCircle, Map, Plus, ArrowLeft, Flag, MoreVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -17,8 +17,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { appStore } from "@/lib/store"
 import { MapView } from "@/components/map-view"
+import { useToast } from "@/hooks/use-toast"
 
 const getCategoryImage = (category: string, title: string, issueImage?: string) => {
   // If the issue has a specific image, use it
@@ -49,6 +62,7 @@ export default function MyIssuesPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState("")
   const router = useRouter()
+  const { toast } = useToast()
 
   useEffect(() => {
     // Check authentication status
@@ -76,6 +90,25 @@ export default function MyIssuesPage() {
 
     return matchesSearch && matchesStatus
   })
+
+  const handleFlagAsSpam = (issueId: string, issueTitle: string) => {
+    const success = appStore.reportSpam(issueId, currentUser)
+    if (success) {
+      toast({
+        title: "Issue Flagged",
+        description: `"${issueTitle}" has been flagged as spam. Thank you for helping keep our community clean.`,
+      })
+      // Refresh the issues list
+      const userIssues = appStore.getIssuesByUser(currentUser)
+      setIssues(userIssues)
+    } else {
+      toast({
+        title: "Already Flagged",
+        description: "You have already flagged this issue as spam.",
+        variant: "destructive",
+      })
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -157,18 +190,74 @@ export default function MyIssuesPage() {
         {filteredIssues.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredIssues.map((issue) => (
-              <Card key={issue.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader className="p-0">
+              <Card key={issue.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader className="p-0 relative">
                   <img
                     src={getCategoryImage(issue.category, issue.title, issue.image) || "/placeholder.svg"}
                     alt={issue.title}
                     className="w-full h-48 object-cover rounded-t-lg"
                   />
+                  {/* Actions Menu */}
+                  <div className="absolute top-2 right-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/issue/${issue.id}`} className="cursor-pointer">
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Flag className="h-4 w-4 mr-2 text-red-500" />
+                              Flag as Spam
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Flag Issue as Spam</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to flag "{issue.title}" as spam? This action will help our
+                                moderators review potentially inappropriate content.
+                                {issue.spamReports && issue.spamReports.length > 0 && (
+                                  <div className="mt-2 text-sm text-orange-600">
+                                    This issue has already been flagged {issue.spamReports.length} time(s).
+                                  </div>
+                                )}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleFlagAsSpam(issue.id, issue.title)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Flag as Spam
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  {/* Spam indicator */}
+                  {issue.spamReports && issue.spamReports.length > 0 && (
+                    <div className="absolute top-2 left-2">
+                      <Badge variant="destructive" className="text-xs">
+                        {issue.spamReports.length} spam report{issue.spamReports.length > 1 ? "s" : ""}
+                      </Badge>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-2">
                     <Link href={`/issue/${issue.id}`}>
-                      <h3 className="font-semibold text-lg hover:text-primary">{issue.title}</h3>
+                      <h3 className="font-semibold text-lg hover:text-primary cursor-pointer">{issue.title}</h3>
                     </Link>
                     <Badge className={getStatusColor(issue.status)}>{issue.status}</Badge>
                   </div>
@@ -176,10 +265,10 @@ export default function MyIssuesPage() {
                   <div className="space-y-2">
                     <div className="flex items-center text-sm text-gray-500">
                       <MapPin className="h-4 w-4 mr-1" />
-                      <span className="truncate">{issue.address}</span>
+                      <span className="truncate flex-1">{issue.address}</span>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="ml-auto p-1 h-auto">
+                          <Button variant="ghost" size="sm" className="ml-2 p-1 h-auto">
                             <Map className="h-4 w-4 text-primary" />
                           </Button>
                         </DialogTrigger>
