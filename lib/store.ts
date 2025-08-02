@@ -1,17 +1,16 @@
 // Simple store for managing application state
 interface Issue {
-  id: number
+  id: string
   title: string
   description: string
   category: string
   status: string
-  address: string
   reportedDate: string
-  reportedTime: string
-  reportedBy: string
+  address: string
+  coordinates: [number, number]
   distance: string
-  image: string
-  coordinates?: { lat: number; lng: number }
+  reportedBy?: string
+  image?: string
   spamReports: string[]
   isHidden: boolean
 }
@@ -26,100 +25,98 @@ interface User {
 class AppStore {
   private issues: Issue[] = [
     {
-      id: 1,
+      id: "1",
       title: "Broken Street Light",
-      description: "Street light has been out for 3 days, making the area unsafe at night",
+      description:
+        "Street light on Main Street has been flickering and now completely out. Creates safety hazard for pedestrians and drivers at night.",
       category: "Lighting",
-      status: "In Progress",
-      address: "123 Main St, Downtown",
-      reportedDate: "2024-01-15",
-      reportedTime: "14:30",
-      reportedBy: "system",
-      distance: "0.5",
-      image: "/brokenstreetlight.webp",
-      coordinates: { lat: 40.7128, lng: -74.006 },
-      spamReports: [],
-      isHidden: false,
-    },
-    {
-      id: 2,
-      title: "Large Pothole",
-      description: "Deep pothole causing damage to vehicles on main road",
-      category: "Roads",
       status: "Reported",
-      address: "Highway 101, Mile 15",
-      reportedDate: "2024-01-14",
-      reportedTime: "16:45",
-      reportedBy: "system",
-      distance: "2.1",
-      image: "/largepothole.jpg",
-      coordinates: { lat: 40.7589, lng: -73.9851 },
+      reportedDate: "2024-01-15",
+      address: "123 Main Street, Downtown",
+      coordinates: [40.7128, -74.006],
+      distance: "0.5",
+      reportedBy: "john_doe",
+      image: "/brokenstreetlight.webp",
       spamReports: [],
       isHidden: false,
     },
     {
-      id: 3,
+      id: "2",
+      title: "Large Pothole",
+      description:
+        "Deep pothole on Oak Avenue causing damage to vehicles. Multiple cars have reported tire damage from this hazard.",
+      category: "Roads",
+      status: "In Progress",
+      reportedDate: "2024-01-12",
+      address: "456 Oak Avenue, Midtown",
+      coordinates: [40.7589, -73.9851],
+      distance: "1.2",
+      reportedBy: "jane_smith",
+      image: "/largepothole.jpg",
+      spamReports: [],
+      isHidden: false,
+    },
+    {
+      id: "3",
       title: "Water Leak",
-      description: "Continuous water leak from underground pipe flooding the sidewalk and creating slippery conditions",
+      description:
+        "Continuous water leak from underground pipe flooding the sidewalk and creating slippery conditions.",
       category: "Water Supply",
       status: "Resolved",
-      address: "789 Pine Street, Uptown",
       reportedDate: "2024-01-10",
-      reportedTime: "09:15",
-      reportedBy: "system",
+      address: "789 Pine Street, Uptown",
+      coordinates: [40.7831, -73.9712],
       distance: "2.1",
+      reportedBy: "mike_wilson",
       image: "/waterleak.jpg",
-      coordinates: { lat: 40.7831, lng: -73.9712 },
       spamReports: [],
       isHidden: false,
     },
     {
-      id: 4,
+      id: "4",
       title: "Overflowing Garbage Bin",
       description:
-        "Public garbage bin has been overflowing for days, attracting pests and creating unsanitary conditions",
+        "Public garbage bin has been overflowing for days, attracting pests and creating unsanitary conditions.",
       category: "Cleanliness",
       status: "Reported",
-      address: "321 Elm Street, Southside",
       reportedDate: "2024-01-14",
-      reportedTime: "11:20",
-      reportedBy: "system",
+      address: "321 Elm Street, Southside",
+      coordinates: [40.7282, -74.0776],
       distance: "0.8",
+      reportedBy: "sarah_jones",
       image: "/overflowinggarbagebin.webp",
-      coordinates: { lat: 40.7282, lng: -74.0776 },
       spamReports: [],
       isHidden: false,
     },
     {
-      id: 5,
+      id: "5",
       title: "Damaged Sidewalk",
       description:
-        "Cracked and uneven sidewalk creating tripping hazards for pedestrians, especially dangerous for elderly residents",
+        "Cracked and uneven sidewalk creating tripping hazards for pedestrians, especially dangerous for elderly residents.",
       category: "Public Safety",
       status: "In Progress",
-      address: "654 Maple Drive, Westside",
       reportedDate: "2024-01-11",
-      reportedTime: "15:45",
-      reportedBy: "system",
+      address: "654 Maple Drive, Westside",
+      coordinates: [40.7505, -73.9934],
       distance: "1.8",
+      reportedBy: "robert_brown",
       image: "/damagedsidewalk.webp",
-      coordinates: { lat: 40.7505, lng: -73.9934 },
       spamReports: [],
       isHidden: false,
     },
     {
-      id: 6,
+      id: "6",
       title: "Fallen Tree Branch",
-      description: "Large tree branch has fallen and is blocking part of the sidewalk and bike lane after recent storm",
+      description:
+        "Large tree branch has fallen and is blocking part of the sidewalk and bike lane after recent storm.",
       category: "Obstructions",
       status: "Reported",
-      address: "987 Cedar Lane, Eastside",
       reportedDate: "2024-01-13",
-      reportedTime: "08:30",
-      reportedBy: "system",
+      address: "987 Cedar Lane, Eastside",
+      coordinates: [40.7614, -73.9776],
       distance: "3.2",
+      reportedBy: "lisa_davis",
       image: "/fallentreebranch.jpeg",
-      coordinates: { lat: 40.7614, lng: -73.9776 },
       spamReports: [],
       isHidden: false,
     },
@@ -132,36 +129,54 @@ class AppStore {
       role: "admin",
       isBanned: false,
     },
+    {
+      username: "john_doe",
+      email: "john@example.com",
+      role: "user",
+      isBanned: false,
+    },
+    {
+      username: "jane_smith",
+      email: "jane@example.com",
+      role: "user",
+      isBanned: false,
+    },
+    {
+      username: "mike_wilson",
+      email: "mike@example.com",
+      role: "user",
+      isBanned: false,
+    },
   ]
 
-  private notifications: Array<{
-    id: string
-    message: string
-    type: "info" | "success" | "warning" | "error"
-    timestamp: Date
-    userId: string
-  }> = []
-
-  getIssues() {
+  getIssues(): Issue[] {
     return this.issues.filter((issue) => !issue.isHidden)
   }
 
-  getAllIssues() {
+  getAllIssues(): Issue[] {
     return this.issues
   }
 
-  getIssueById(id: number) {
+  getIssue(id: string): Issue | undefined {
     return this.issues.find((issue) => issue.id === id)
   }
 
-  getUserIssues(username: string) {
+  getIssuesByUser(username: string): Issue[] {
+    return this.issues.filter((issue) => issue.reportedBy === username)
+  }
+
+  getUserIssues(username: string): Issue[] {
     return this.issues.filter((issue) => issue.reportedBy === username && !issue.isHidden)
   }
 
-  addIssue(issue: Omit<Issue, "id" | "spamReports" | "isHidden">) {
+  getAllUsers(): User[] {
+    return this.users
+  }
+
+  addIssue(issue: Omit<Issue, "id" | "spamReports" | "isHidden">): Issue {
     const newIssue: Issue = {
       ...issue,
-      id: Math.max(...this.issues.map((i) => i.id), 0) + 1,
+      id: (this.issues.length + 1).toString(),
       spamReports: [],
       isHidden: false,
     }
@@ -169,62 +184,36 @@ class AppStore {
     return newIssue
   }
 
-  updateIssue(id: number, updates: Partial<Issue>) {
-    const issueIndex = this.issues.findIndex((issue) => issue.id === id)
-    if (issueIndex === -1) return false
-
-    this.issues[issueIndex] = { ...this.issues[issueIndex], ...updates }
-    return true
-  }
-
-  deleteIssue(id: number) {
-    const issueIndex = this.issues.findIndex((issue) => issue.id === id)
-    if (issueIndex === -1) return false
-
-    this.issues.splice(issueIndex, 1)
-    return true
-  }
-
-  reportSpam(issueId: number, reportedBy: string) {
-    const issue = this.issues.find((i) => i.id === issueId)
-    if (issue && !issue.spamReports.includes(reportedBy)) {
-      issue.spamReports.push(reportedBy)
-
-      // Auto-hide if reported by 3 or more users
-      if (issue.spamReports.length >= 3) {
-        issue.isHidden = true
-        this.addNotification({
-          message: `Issue "${issue.title}" has been auto-hidden due to multiple spam reports`,
-          type: "warning",
-          userId: "admin",
-        })
-      }
+  updateIssueStatus(id: string | number, status: string): boolean {
+    const issueId = typeof id === "number" ? id.toString() : id
+    const issue = this.issues.find((issue) => issue.id === issueId)
+    if (issue) {
+      issue.status = status
+      return true
     }
+    return false
   }
 
-  getUser(username: string) {
-    return this.users.find((user) => user.username === username)
-  }
-
-  getAllUsers() {
-    return this.users
-  }
-
-  addUser(user: User) {
-    this.users.push(user)
-  }
-
-  banUser(username: string) {
+  banUser(username: string): void {
     const user = this.users.find((u) => u.username === username)
     if (user) {
       user.isBanned = true
     }
   }
 
-  unbanUser(username: string) {
+  unbanUser(username: string): void {
     const user = this.users.find((u) => u.username === username)
     if (user) {
       user.isBanned = false
+    }
+  }
+
+  unhideIssue(id: string | number): void {
+    const issueId = typeof id === "number" ? id.toString() : id
+    const issue = this.issues.find((i) => i.id === issueId)
+    if (issue) {
+      issue.isHidden = false
+      issue.spamReports = []
     }
   }
 
@@ -256,33 +245,6 @@ class AppStore {
       spamReports: spamReports.length,
       hiddenIssues: hiddenIssues.length,
       mostReportedCategory: Object.entries(categoryStats).sort(([, a], [, b]) => b - a)[0]?.[0] || "None",
-    }
-  }
-
-  addNotification(notification: Omit<(typeof this.notifications)[0], "id" | "timestamp">) {
-    this.notifications.push({
-      ...notification,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-    })
-  }
-
-  getNotifications(userId: string) {
-    return this.notifications.filter((n) => n.userId === userId || n.userId === "all")
-  }
-
-  updateIssueStatus(issueId: number, status: string) {
-    const issue = this.issues.find((i) => i.id === issueId)
-    if (issue) {
-      issue.status = status
-    }
-  }
-
-  unhideIssue(issueId: number) {
-    const issue = this.issues.find((i) => i.id === issueId)
-    if (issue) {
-      issue.isHidden = false
-      issue.spamReports = []
     }
   }
 }

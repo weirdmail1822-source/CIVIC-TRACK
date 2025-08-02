@@ -83,13 +83,13 @@ export default function AdminPage() {
     router.push("/")
   }
 
-  const handleUpdateStatus = (issueId: number, newStatus: string) => {
+  const handleUpdateStatus = (issueId: string, newStatus: string) => {
     appStore.updateIssueStatus(issueId, newStatus)
     toast.success(`Issue status updated to ${newStatus}`)
     loadAdminData()
   }
 
-  const handleUnhideIssue = (issueId: number) => {
+  const handleUnhideIssue = (issueId: string) => {
     appStore.unhideIssue(issueId)
     toast.success("Issue has been unhidden and spam reports cleared")
     loadAdminData()
