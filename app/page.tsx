@@ -2,36 +2,35 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Search, MapPin, Calendar, Tag, AlertCircle, Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { appStore } from "@/lib/store"
-import { MapView } from "@/components/map-view"
+import { HeroSection, FeaturesSection, TestimonialsSection, Footer } from "@/components"
 
 const getCategoryImage = (category: string, title: string) => {
   const categoryImages = {
+    "Road Maintenance": "/placeholder.svg?height=200&width=300&text=Road+Maintenance",
+    "Street Lighting": "/placeholder.svg?height=200&width=300&text=Street+Lighting",
+    "Water Supply": "/placeholder.svg?height=200&width=300&text=Water+Supply",
+    "Waste Management": "/placeholder.svg?height=200&width=300&text=Waste+Management",
+    "Public Safety": "/placeholder.svg?height=200&width=300&text=Public+Safety",
+    "Parks & Recreation": "/placeholder.svg?height=200&width=300&text=Parks+Recreation",
+    "Traffic Management": "/placeholder.svg?height=200&width=300&text=Traffic+Management",
+    "Noise Pollution": "/placeholder.svg?height=200&width=300&text=Noise+Pollution",
     Roads: "/placeholder.svg?height=200&width=300&text=Road+Issue",
     Lighting: "/placeholder.svg?height=200&width=300&text=Street+Light",
-    "Water Supply": "/placeholder.svg?height=200&width=300&text=Water+Leak",
     Cleanliness: "/placeholder.svg?height=200&width=300&text=Garbage+Issue",
-    "Public Safety": "/placeholder.svg?height=200&width=300&text=Safety+Hazard",
     Obstructions: "/placeholder.svg?height=200&width=300&text=Obstruction",
   }
 
   return (
     categoryImages[category as keyof typeof categoryImages] ||
-    `/placeholder.svg?height=200&width=300&text=${encodeURIComponent(title)}`
+    `/placeholder.svg?height=200&width=300&text=${encodeURIComponent(title.replace(/\s+/g, "+"))}`
   )
 }
 
@@ -41,9 +40,13 @@ export default function HomePage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [distanceFilter, setDistanceFilter] = useState("all")
   const [issues, setIssues] = useState<any[]>([])
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     setIssues(appStore.getIssues())
+    const authStatus = localStorage.getItem("isAuthenticated")
+    setIsAuthenticated(!!authStatus)
   }, [])
 
   const filteredIssues = issues.filter((issue) => {
@@ -53,18 +56,17 @@ export default function HomePage() {
     const matchesCategory = categoryFilter === "all" || issue.category === categoryFilter
     const matchesStatus = statusFilter === "all" || issue.status === statusFilter
 
-    // Fix distance filtering
     let matchesDistance = true
     if (distanceFilter !== "all") {
       const issueDistance = Number.parseFloat(issue.distance)
       switch (distanceFilter) {
-        case "1km":
+        case "1KM":
           matchesDistance = issueDistance <= 1
           break
-        case "3km":
+        case "3KM":
           matchesDistance = issueDistance <= 3
           break
-        case "5km":
+        case "5KM":
           matchesDistance = issueDistance <= 5
           break
       }
@@ -86,6 +88,24 @@ export default function HomePage() {
     }
   }
 
+  const handleMapClick = (issue: any) => {
+    // Navigate to a dedicated map page with the issue details
+    router.push(
+      `/map?issueId=${issue.id}&lat=${issue.coordinates?.lat || 0}&lng=${issue.coordinates?.lng || 0}&address=${encodeURIComponent(issue.address)}`,
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="bg-gradient-to-br from-[#b4a7d6] via-[#9b8bc7] to-[#674ea7] min-h-screen text-white">
+        <HeroSection />
+        <FeaturesSection />
+        <TestimonialsSection />
+        <Footer />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
@@ -96,9 +116,14 @@ export default function HomePage() {
               <AlertCircle className="h-8 w-8 text-primary mr-2" />
               <h1 className="text-2xl font-bold text-gray-900">CIVIC TRACK</h1>
             </div>
-            <Link href="/login">
-              <Button className="bg-primary hover:bg-primary-700 text-white">Login</Button>
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="outline">Dashboard</Button>
+              </Link>
+              <Link href="/report">
+                <Button className="bg-primary hover:bg-primary-700 text-white">Report Issue</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
@@ -122,12 +147,14 @@ export default function HomePage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="Roads">Roads</SelectItem>
-                <SelectItem value="Lighting">Lighting</SelectItem>
+                <SelectItem value="Road Maintenance">Road Maintenance</SelectItem>
+                <SelectItem value="Street Lighting">Street Lighting</SelectItem>
                 <SelectItem value="Water Supply">Water Supply</SelectItem>
-                <SelectItem value="Cleanliness">Cleanliness</SelectItem>
+                <SelectItem value="Waste Management">Waste Management</SelectItem>
                 <SelectItem value="Public Safety">Public Safety</SelectItem>
-                <SelectItem value="Obstructions">Obstructions</SelectItem>
+                <SelectItem value="Parks & Recreation">Parks & Recreation</SelectItem>
+                <SelectItem value="Traffic Management">Traffic Management</SelectItem>
+                <SelectItem value="Noise Pollution">Noise Pollution</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -147,9 +174,9 @@ export default function HomePage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Distances</SelectItem>
-                <SelectItem value="1km">Within 1km</SelectItem>
-                <SelectItem value="3km">Within 3km</SelectItem>
-                <SelectItem value="5km">Within 5km</SelectItem>
+                <SelectItem value="1KM">Within 1KM</SelectItem>
+                <SelectItem value="3KM">Within 3KM</SelectItem>
+                <SelectItem value="5KM">Within 5KM</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -177,21 +204,15 @@ export default function HomePage() {
                 <div className="space-y-2">
                   <div className="flex items-center text-sm text-gray-500">
                     <MapPin className="h-4 w-4 mr-1" />
-                    <span className="truncate">{issue.address}</span>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="ml-auto p-1 h-auto">
-                          <Map className="h-4 w-4 text-primary" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Location - {issue.title}</DialogTitle>
-                          <DialogDescription>{issue.address}</DialogDescription>
-                        </DialogHeader>
-                        <MapView coordinates={issue.coordinates} address={issue.address} className="h-96" />
-                      </DialogContent>
-                    </Dialog>
+                    <span className="truncate flex-1">{issue.address}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto p-1 h-auto"
+                      onClick={() => handleMapClick(issue)}
+                    >
+                      <Map className="h-4 w-4 text-primary" />
+                    </Button>
                   </div>
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center">
