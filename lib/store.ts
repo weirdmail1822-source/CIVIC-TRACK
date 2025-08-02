@@ -6,6 +6,7 @@ interface Issue {
   category: string
   status: string
   reportedDate: string
+  reportedTime?: string
   address: string
   coordinates: [number, number]
   distance: string
@@ -32,6 +33,7 @@ class AppStore {
       category: "Lighting",
       status: "Reported",
       reportedDate: "2024-01-15",
+      reportedTime: "08:30",
       address: "123 Main Street, Downtown",
       coordinates: [40.7128, -74.006],
       distance: "0.5",
@@ -48,6 +50,7 @@ class AppStore {
       category: "Roads",
       status: "In Progress",
       reportedDate: "2024-01-12",
+      reportedTime: "14:20",
       address: "456 Oak Avenue, Midtown",
       coordinates: [40.7589, -73.9851],
       distance: "1.2",
@@ -64,6 +67,7 @@ class AppStore {
       category: "Water Supply",
       status: "Resolved",
       reportedDate: "2024-01-10",
+      reportedTime: "11:45",
       address: "789 Pine Street, Uptown",
       coordinates: [40.7831, -73.9712],
       distance: "2.1",
@@ -80,6 +84,7 @@ class AppStore {
       category: "Cleanliness",
       status: "Reported",
       reportedDate: "2024-01-14",
+      reportedTime: "16:10",
       address: "321 Elm Street, Southside",
       coordinates: [40.7282, -74.0776],
       distance: "0.8",
@@ -96,6 +101,7 @@ class AppStore {
       category: "Public Safety",
       status: "In Progress",
       reportedDate: "2024-01-11",
+      reportedTime: "09:30",
       address: "654 Maple Drive, Westside",
       coordinates: [40.7505, -73.9934],
       distance: "1.8",
@@ -112,6 +118,7 @@ class AppStore {
       category: "Obstructions",
       status: "Reported",
       reportedDate: "2024-01-13",
+      reportedTime: "07:15",
       address: "987 Cedar Lane, Eastside",
       coordinates: [40.7614, -73.9776],
       distance: "3.2",
@@ -161,6 +168,12 @@ class AppStore {
     return this.issues.find((issue) => issue.id === id)
   }
 
+  // Alias for getIssue to maintain compatibility
+  getIssueById(id: string | number): Issue | undefined {
+    const issueId = typeof id === "number" ? id.toString() : id
+    return this.getIssue(issueId)
+  }
+
   getIssuesByUser(username: string): Issue[] {
     return this.issues.filter((issue) => issue.reportedBy === username)
   }
@@ -184,11 +197,45 @@ class AppStore {
     return newIssue
   }
 
+  updateIssue(id: string | number, updates: Partial<Issue>): boolean {
+    const issueId = typeof id === "number" ? id.toString() : id
+    const issueIndex = this.issues.findIndex((issue) => issue.id === issueId)
+    if (issueIndex !== -1) {
+      this.issues[issueIndex] = { ...this.issues[issueIndex], ...updates }
+      return true
+    }
+    return false
+  }
+
   updateIssueStatus(id: string | number, status: string): boolean {
     const issueId = typeof id === "number" ? id.toString() : id
     const issue = this.issues.find((issue) => issue.id === issueId)
     if (issue) {
       issue.status = status
+      return true
+    }
+    return false
+  }
+
+  deleteIssue(id: string | number): boolean {
+    const issueId = typeof id === "number" ? id.toString() : id
+    const issueIndex = this.issues.findIndex((issue) => issue.id === issueId)
+    if (issueIndex !== -1) {
+      this.issues.splice(issueIndex, 1)
+      return true
+    }
+    return false
+  }
+
+  reportSpam(id: string | number, reportedBy: string): boolean {
+    const issueId = typeof id === "number" ? id.toString() : id
+    const issue = this.issues.find((issue) => issue.id === issueId)
+    if (issue && !issue.spamReports.includes(reportedBy)) {
+      issue.spamReports.push(reportedBy)
+      // Auto-hide if more than 3 spam reports
+      if (issue.spamReports.length >= 3) {
+        issue.isHidden = true
+      }
       return true
     }
     return false
@@ -205,6 +252,14 @@ class AppStore {
     const user = this.users.find((u) => u.username === username)
     if (user) {
       user.isBanned = false
+    }
+  }
+
+  hideIssue(id: string | number): void {
+    const issueId = typeof id === "number" ? id.toString() : id
+    const issue = this.issues.find((i) => i.id === issueId)
+    if (issue) {
+      issue.isHidden = true
     }
   }
 
