@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    toast.success("Password reset email sent!")
+    toast.success("Password reset link sent to your email!")
     setEmailSent(true)
     setIsLoading(false)
   }
@@ -37,15 +37,13 @@ export default function ForgotPasswordPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
-            <Link href="/" className="flex items-center justify-center mb-6">
-              <AlertCircle className="h-12 w-12 text-primary mr-3" />
-              <h1 className="text-3xl font-bold text-gray-900">CIVIC TRACK</h1>
-            </Link>
+            <AlertCircle className="h-12 w-12 text-primary mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-gray-900">CIVIC TRACK</h1>
           </div>
 
           <Card>
             <CardHeader className="text-center">
-              <div className="mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-100 mb-4">
+              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <Mail className="h-6 w-6 text-green-600" />
               </div>
               <CardTitle>Check your email</CardTitle>
@@ -57,16 +55,12 @@ export default function ForgotPasswordPage() {
               <p className="text-sm text-gray-600 text-center">
                 Didn't receive the email? Check your spam folder or try again with a different email address.
               </p>
-
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Button onClick={handleTryAgain} variant="outline" className="w-full bg-transparent">
                   Try again
                 </Button>
                 <Link href="/login">
-                  <Button variant="ghost" className="w-full">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to login
-                  </Button>
+                  <Button className="w-full bg-primary hover:bg-primary-700 text-white">Back to login</Button>
                 </Link>
               </div>
             </CardContent>
@@ -93,7 +87,7 @@ export default function ForgotPasswordPage() {
         <Card>
           <CardHeader>
             <CardTitle>Reset Password</CardTitle>
-            <CardDescription>Enter your email to receive a password reset link</CardDescription>
+            <CardDescription>Enter your email address to receive reset instructions</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -110,7 +104,7 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="mt-1"
-                  placeholder="Enter your email address"
+                  placeholder="Enter your email"
                 />
               </div>
 
@@ -118,15 +112,15 @@ export default function ForgotPasswordPage() {
                 {isLoading ? "Sending..." : "Send reset link"}
               </Button>
             </form>
-
-            <div className="mt-6 text-center">
-              <Link href="/login" className="text-sm text-gray-600 hover:text-primary flex items-center justify-center">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Back to login
-              </Link>
-            </div>
           </CardContent>
         </Card>
+
+        <div className="text-center">
+          <Link href="/login" className="inline-flex items-center text-sm text-gray-600 hover:text-primary">
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to login
+          </Link>
+        </div>
       </div>
     </div>
   )

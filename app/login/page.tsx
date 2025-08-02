@@ -65,7 +65,8 @@ export default function LoginPage() {
       localStorage.setItem("userRole", "user")
       localStorage.setItem("userEmail", email)
       toast.success(`Welcome back, ${username}!`)
-      router.push("/dashboard")
+      // Navigate to home page instead of dashboard
+      router.push("/")
     } else {
       toast.error("Please enter valid credentials")
     }

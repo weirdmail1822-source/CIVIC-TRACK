@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Search, MapPin, Calendar, Tag, AlertCircle, Map } from "lucide-react"
+import { Search, MapPin, Calendar, Tag, AlertCircle, Map, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,8 +16,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { appStore } from "@/lib/store"
 import { MapView } from "@/components/map-view"
+import { useRouter } from "next/navigation"
 
 const getCategoryImage = (category: string, title: string) => {
   const categoryImages = {
@@ -41,9 +43,21 @@ export default function HomePage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [distanceFilter, setDistanceFilter] = useState("all")
   const [issues, setIssues] = useState<any[]>([])
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [currentUser, setCurrentUser] = useState("")
+  const router = useRouter()
 
   useEffect(() => {
     setIssues(appStore.getIssues())
+
+    // Check authentication status
+    const authenticated = localStorage.getItem("isAuthenticated")
+    const username = localStorage.getItem("username")
+
+    if (authenticated) {
+      setIsAuthenticated(true)
+      setCurrentUser(username || "")
+    }
   }, [])
 
   const filteredIssues = issues.filter((issue) => {
@@ -86,24 +100,103 @@ export default function HomePage() {
     }
   }
 
+  const handleLogout = () => {
+    localStorage.clear()
+    setIsAuthenticated(false)
+    setCurrentUser("")
+    router.push("/")
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
       <nav className="bg-white shadow-sm border-b border-secondary-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <AlertCircle className="h-8 w-8 text-primary mr-2" />
-              <h1 className="text-2xl font-bold text-gray-900">CIVIC TRACK</h1>
+            <div className="flex items-center space-x-8">
+              <Link href="/" className="flex items-center">
+                <AlertCircle className="h-8 w-8 text-primary mr-2" />
+                <h1 className="text-2xl font-bold text-gray-900">CIVIC TRACK</h1>
+              </Link>
+
+              {isAuthenticated && (
+                <div className="hidden md:flex space-x-6">
+                  <Link href="/" className="text-primary font-medium">
+                    Home
+                  </Link>
+                  <Link href="/my-issues" className="text-gray-600 hover:text-primary">
+                    My Issues
+                  </Link>
+                  <Link href="/report" className="text-gray-600 hover:text-primary">
+                    Report Issue
+                  </Link>
+                </div>
+              )}
             </div>
-            <Link href="/login">
-              <Button className="bg-primary hover:bg-primary-700 text-white">Login</Button>
-            </Link>
+
+            <div className="flex items-center space-x-4">
+              {isAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center space-x-2">
+                      <User className="h-4 w-4" />
+                      <span>{currentUser}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link href="/my-issues" className="flex items-center">
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        My Issues
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/report" className="flex items-center">
+                        <Tag className="h-4 w-4 mr-2" />
+                        Report Issue
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout} className="flex items-center">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link href="/login">
+                  <Button className="bg-primary hover:bg-primary-700 text-white">Login</Button>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Message for Authenticated Users */}
+        {isAuthenticated && (
+          <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-8">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-primary-800">Welcome back, {currentUser}!</h2>
+                <p className="text-primary-600">Track civic issues in your community and report new ones.</p>
+              </div>
+              <div className="flex space-x-3">
+                <Link href="/my-issues">
+                  <Button variant="outline" size="sm">
+                    My Issues
+                  </Button>
+                </Link>
+                <Link href="/report">
+                  <Button className="bg-primary hover:bg-primary-700 text-white" size="sm">
+                    Report Issue
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filters Section */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
