@@ -4,124 +4,121 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { AlertCircle, Mail, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Mail, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { toast } from "sonner"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
+  const [isEmailSent, setIsEmailSent] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
     setIsLoading(true)
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    toast.success("Password reset link sent to your email!")
-    setEmailSent(true)
-    setIsLoading(false)
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false)
+      setIsEmailSent(true)
+    }, 2000)
   }
 
   const handleTryAgain = () => {
-    setEmailSent(false)
+    setIsEmailSent(false)
     setEmail("")
   }
 
-  if (emailSent) {
+  if (isEmailSent) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-gray-900">CIVIC TRACK</h1>
-          </div>
-
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <Mail className="h-6 w-6 text-green-600" />
-              </div>
-              <CardTitle>Check your email</CardTitle>
-              <CardDescription>
-                We've sent a password reset link to <strong>{email}</strong>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600 text-center">
-                Didn't receive the email? Check your spam folder or try again with a different email address.
-              </p>
-              <div className="space-y-2">
-                <Button onClick={handleTryAgain} variant="outline" className="w-full bg-transparent">
-                  Try again
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-gray-900">Email Sent!</CardTitle>
+            <CardDescription>
+              We've sent password reset instructions to <strong>{email}</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <Mail className="h-4 w-4" />
+              <AlertDescription>
+                Check your email and follow the instructions to reset your password. The link will expire in 24 hours.
+              </AlertDescription>
+            </Alert>
+            <div className="flex flex-col space-y-2">
+              <Button onClick={handleTryAgain} variant="outline" className="w-full bg-transparent">
+                Try Different Email
+              </Button>
+              <Link href="/login">
+                <Button variant="ghost" className="w-full">
+                  Back to Login
                 </Button>
-                <Link href="/login">
-                  <Button className="w-full bg-primary hover:bg-primary-700 text-white">Back to login</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <Link href="/" className="flex items-center justify-center mb-6">
-            <AlertCircle className="h-12 w-12 text-primary mr-3" />
-            <h1 className="text-3xl font-bold text-gray-900">CIVIC TRACK</h1>
-          </Link>
-          <h2 className="text-2xl font-bold text-gray-900">Forgot your password?</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Enter your email address and we'll send you a link to reset your password.
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Reset Password</CardTitle>
-            <CardDescription>Enter your email address to receive reset instructions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email address
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1"
-                  placeholder="Enter your email"
-                />
-              </div>
-
-              <Button type="submit" className="w-full bg-primary hover:bg-primary-700 text-white" disabled={isLoading}>
-                {isLoading ? "Sending..." : "Send reset link"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <div className="text-center">
-          <Link href="/login" className="inline-flex items-center text-sm text-gray-600 hover:text-primary">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <Link href="/login" className="flex items-center text-sm text-gray-600 hover:text-primary mb-4">
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to login
+            Back to Login
           </Link>
-        </div>
-      </div>
+          <CardTitle className="text-2xl font-bold text-gray-900">Forgot Password?</CardTitle>
+          <CardDescription>
+            Enter your email address and we'll send you instructions to reset your password.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Sending..." : "Send Reset Link"}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Remember your password?{" "}
+              <Link href="/login" className="font-medium text-primary hover:text-primary-600">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

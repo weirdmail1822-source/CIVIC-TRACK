@@ -21,7 +21,13 @@ import { appStore } from "@/lib/store"
 import { MapView } from "@/components/map-view"
 import { useRouter } from "next/navigation"
 
-const getCategoryImage = (category: string, title: string) => {
+const getCategoryImage = (category: string, title: string, issueImage?: string) => {
+  // If the issue has a specific image, use it
+  if (issueImage) {
+    return issueImage
+  }
+
+  // Otherwise, use category-based placeholder images
   const categoryImages = {
     Roads: "/placeholder.svg?height=200&width=300&text=Road+Issue",
     Lighting: "/placeholder.svg?height=200&width=300&text=Street+Light",
@@ -254,7 +260,7 @@ export default function HomePage() {
             <Card key={issue.id} className="hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader className="p-0">
                 <img
-                  src={getCategoryImage(issue.category, issue.title) || "/placeholder.svg"}
+                  src={getCategoryImage(issue.category, issue.title, issue.image) || "/placeholder.svg"}
                   alt={issue.title}
                   className="w-full h-48 object-cover rounded-t-lg"
                 />
