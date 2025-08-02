@@ -1,23 +1,17 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Search, MapPin, Calendar, Tag, AlertCircle, Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { appStore } from "@/lib/store"
-import { MapView } from "@/components/map-view"
 
 const getCategoryImage = (category: string, title: string) => {
   const categoryImages = {
@@ -41,6 +35,7 @@ export default function HomePage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [distanceFilter, setDistanceFilter] = useState("all")
   const [issues, setIssues] = useState<any[]>([])
+  const router = useRouter()
 
   useEffect(() => {
     setIssues(appStore.getIssues())
@@ -84,6 +79,21 @@ export default function HomePage() {
       default:
         return "bg-secondary-200 text-secondary-800 border-secondary-300"
     }
+  }
+
+  const handleMapClick = (issue: any, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    // Navigate to map page with issue details
+    const params = new URLSearchParams({
+      issueId: issue.id,
+      lat: issue.coordinates?.lat?.toString() || "0",
+      lng: issue.coordinates?.lng?.toString() || "0",
+      address: encodeURIComponent(issue.address),
+    })
+
+    router.push(`/map?${params.toString()}`)
   }
 
   return (
@@ -177,21 +187,16 @@ export default function HomePage() {
                 <div className="space-y-2">
                   <div className="flex items-center text-sm text-gray-500">
                     <MapPin className="h-4 w-4 mr-1" />
-                    <span className="truncate">{issue.address}</span>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="ml-auto p-1 h-auto">
-                          <Map className="h-4 w-4 text-primary" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Location - {issue.title}</DialogTitle>
-                          <DialogDescription>{issue.address}</DialogDescription>
-                        </DialogHeader>
-                        <MapView coordinates={issue.coordinates} address={issue.address} className="h-96" />
-                      </DialogContent>
-                    </Dialog>
+                    <span className="truncate flex-1">{issue.address}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto p-1 h-auto hover:bg-primary/10"
+                      onClick={(e) => handleMapClick(issue, e)}
+                      title="View on map"
+                    >
+                      <Map className="h-4 w-4 text-primary" />
+                    </Button>
                   </div>
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center">
