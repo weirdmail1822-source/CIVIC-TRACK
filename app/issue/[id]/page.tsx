@@ -7,6 +7,17 @@ import { AlertCircle, Edit, Trash2, Flag, MapPin, Calendar, Tag, Clock, CheckCir
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { appStore } from "@/lib/store"
 import { MapView } from "@/components/map-view"
 import { toast } from "sonner"
@@ -15,6 +26,13 @@ export default function IssueDetailPage() {
   const [username, setUsername] = useState("")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [issue, setIssue] = useState<any>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    category: "",
+    address: "",
+  })
   const router = useRouter()
   const params = useParams()
   const issueId = Number.parseInt(params.id as string)
@@ -33,6 +51,15 @@ export default function IssueDetailPage() {
     // Get issue from store
     const foundIssue = appStore.getIssueById(issueId)
     setIssue(foundIssue)
+
+    if (foundIssue) {
+      setEditForm({
+        title: foundIssue.title,
+        description: foundIssue.description,
+        category: foundIssue.category,
+        address: foundIssue.address,
+      })
+    }
   }, [issueId])
 
   const handleLogout = () => {
@@ -55,6 +82,30 @@ export default function IssueDetailPage() {
     // Refresh issue data
     const updatedIssue = appStore.getIssueById(issueId)
     setIssue(updatedIssue)
+  }
+
+  const handleEditIssue = () => {
+    if (!appStore.updateIssue(issueId, editForm)) {
+      toast.error("Failed to update issue")
+      return
+    }
+
+    toast.success("Issue updated successfully")
+    setIsEditing(false)
+
+    // Refresh issue data
+    const updatedIssue = appStore.getIssueById(issueId)
+    setIssue(updatedIssue)
+  }
+
+  const handleDeleteIssue = () => {
+    if (!appStore.deleteIssue(issueId)) {
+      toast.error("Failed to delete issue")
+      return
+    }
+
+    toast.success("Issue deleted successfully")
+    router.push("/dashboard")
   }
 
   const getStatusColor = (status: string) => {
@@ -139,22 +190,105 @@ export default function IssueDetailPage() {
             <div className="flex items-center space-x-4">
               {isAuthenticated && issue.reportedBy === username && (
                 <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-primary text-primary hover:bg-primary hover:text-white bg-transparent"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white bg-transparent"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
+                  <Dialog open={isEditing} onOpenChange={setIsEditing}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-primary text-primary hover:bg-primary hover:text-white bg-transparent"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Edit Issue</DialogTitle>
+                        <DialogDescription>Update the details of your reported issue</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium">Title</label>
+                          <Input
+                            value={editForm.title}
+                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                            placeholder="Issue title"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Description</label>
+                          <Textarea
+                            value={editForm.description}
+                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                            placeholder="Describe the issue"
+                            rows={4}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Category</label>
+                          <Select
+                            value={editForm.category}
+                            onValueChange={(value) => setEditForm({ ...editForm, category: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Roads">Roads</SelectItem>
+                              <SelectItem value="Lighting">Lighting</SelectItem>
+                              <SelectItem value="Water Supply">Water Supply</SelectItem>
+                              <SelectItem value="Cleanliness">Cleanliness</SelectItem>
+                              <SelectItem value="Public Safety">Public Safety</SelectItem>
+                              <SelectItem value="Obstructions">Obstructions</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Address</label>
+                          <Input
+                            value={editForm.address}
+                            onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                            placeholder="Issue location"
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-4">
+                          <Button onClick={handleEditIssue} className="bg-primary hover:bg-primary-700">
+                            Save Changes
+                          </Button>
+                          <Button variant="outline" onClick={() => setIsEditing(false)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white bg-transparent"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Delete Issue</DialogTitle>
+                        <DialogDescription>
+                          Are you sure you want to delete this issue? This action cannot be undone.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="flex gap-2 pt-4">
+                        <Button variant="destructive" onClick={handleDeleteIssue}>
+                          Delete Issue
+                        </Button>
+                        <Button variant="outline">Cancel</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </>
               )}
               {isAuthenticated ? (

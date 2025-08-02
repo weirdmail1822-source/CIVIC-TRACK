@@ -3,324 +3,335 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { AlertCircle, Upload, X, LogOut, User, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { appStore } from "@/lib/store"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { MapPin, Camera, Send, Loader2, CheckCircle } from "lucide-react"
+import { useStore } from "@/lib/store"
+import { useRouter } from "next/navigation"
 
-export default function ReportPage() {
-  const [username, setUsername] = useState("")
+export default function ReportIssue() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
     address: "",
+    images: [] as File[],
   })
-  const [selectedImage, setSelectedImage] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState("")
   const [isDetectingLocation, setIsDetectingLocation] = useState(false)
+  const { currentUser, addIssue } = useStore()
   const router = useRouter()
+
+  const categories = [
+    "Road Maintenance",
+    "Street Lighting",
+    "Waste Management",
+    "Water Supply",
+    "Public Safety",
+    "Parks & Recreation",
+    "Traffic Management",
+    "Noise Pollution",
+  ]
+
+  useEffect(() => {
+    if (!currentUser) {
+      router.push("/login")
+    }
+  }, [currentUser, router])
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+    setError("")
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    setFormData((prev) => ({ ...prev, images: [...prev.images, ...files] }))
+  }
+
+  const removeImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }))
+  }
 
   const detectLocation = () => {
     setIsDetectingLocation(true)
-    if (navigator.geolocation) {
+
+    if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
+        async (position) => {
+          try {
+            // Simulate reverse geocoding
+            const mockAddresses = [
+              "123 Main Street, Downtown",
+              "456 Oak Avenue, Midtown",
+              "789 Pine Road, Uptown",
+              "321 Elm Street, Westside",
+              "654 Maple Drive, Eastside",
+            ]
+
+            // Simulate API delay
+            await new Promise((resolve) => setTimeout(resolve, 1500))
+
+            const randomAddress = mockAddresses[Math.floor(Math.random() * mockAddresses.length)]
+            handleInputChange("address", randomAddress)
+          } catch (err) {
+            setError("Failed to get address from location")
+          } finally {
+            setIsDetectingLocation(false)
           }
-          setLocation(coords)
-          // Mock reverse geocoding
-          setFormData({
-            ...formData,
-            address: `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)} (Auto-detected)`,
-          })
-          setIsDetectingLocation(false)
         },
         (error) => {
-          console.error("Error detecting location:", error)
+          setError("Unable to detect location. Please enter address manually.")
           setIsDetectingLocation(false)
-          alert("Unable to detect location. Please enter address manually.")
         },
       )
     } else {
+      setError("Geolocation is not supported by this browser")
       setIsDetectingLocation(false)
-      alert("Geolocation is not supported by this browser.")
     }
-  }
-
-  useEffect(() => {
-    // Check authentication
-    const isAuth = localStorage.getItem("isAuthenticated")
-    const storedUsername = localStorage.getItem("username")
-
-    if (!isAuth) {
-      router.push("/login")
-      return
-    }
-
-    if (storedUsername) {
-      setUsername(storedUsername)
-    }
-  }, [router])
-
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated")
-    localStorage.removeItem("username")
-    localStorage.removeItem("userRole")
-    localStorage.removeItem("userEmail")
-    router.push("/")
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
-  }
-
-  const handleCategoryChange = (value: string) => {
-    setFormData({
-      ...formData,
-      category: value,
-    })
-  }
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setSelectedImage(file)
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const removeImage = () => {
-    setSelectedImage(null)
-    setImagePreview(null)
-  }
-
-  const getCategoryImage = (category: string) => {
-    const categoryImages = {
-      Roads: "/placeholder.svg?height=200&width=300&text=Road+Issue",
-      Lighting: "/placeholder.svg?height=200&width=300&text=Street+Light",
-      "Water Supply": "/placeholder.svg?height=200&width=300&text=Water+Leak",
-      Cleanliness: "/placeholder.svg?height=200&width=300&text=Garbage+Issue",
-      "Public Safety": "/placeholder.svg?height=200&width=300&text=Safety+Hazard",
-      Obstructions: "/placeholder.svg?height=200&width=300&text=Obstruction",
-    }
-    return categoryImages[category as keyof typeof categoryImages] || "/placeholder.svg?height=200&width=300&text=Issue"
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setError("")
 
-    // Calculate random distance for demo
-    const distance = (Math.random() * 5).toFixed(1)
-
-    const newIssue = {
-      title: formData.title,
-      description: formData.description,
-      category: formData.category,
-      status: "Reported",
-      address: formData.address,
-      reportedDate: new Date().toISOString().split("T")[0],
-      reportedTime: new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }),
-      reportedBy: username,
-      distance,
-      image: getCategoryImage(formData.category),
-      coordinates: location,
+    if (!formData.title.trim()) {
+      setError("Please enter a title")
+      return
     }
 
-    // Add to store
-    appStore.addIssue(newIssue)
+    if (!formData.description.trim()) {
+      setError("Please enter a description")
+      return
+    }
 
-    setTimeout(() => {
-      router.push("/dashboard")
-    }, 1000)
+    if (!formData.category) {
+      setError("Please select a category")
+      return
+    }
+
+    if (!formData.address.trim()) {
+      setError("Please enter an address")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      const newIssue = {
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        address: formData.address,
+        images: formData.images.map((file) => URL.createObjectURL(file)),
+        reporterId: currentUser!.id,
+        reporterName: currentUser!.name,
+      }
+
+      addIssue(newIssue)
+      setIsSuccess(true)
+
+      // Reset form after success
+      setTimeout(() => {
+        setFormData({
+          title: "",
+          description: "",
+          category: "",
+          address: "",
+          images: [],
+        })
+        setIsSuccess(false)
+        router.push("/dashboard")
+      }, 2000)
+    } catch (err) {
+      setError("Failed to submit issue. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (!currentUser) {
+    return null
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#b4a7d6] to-[#674ea7] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-white/20 text-center">
+          <CardContent className="pt-6">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-[#674ea7] mb-2">Issue Reported!</h2>
+            <p className="text-gray-600 mb-4">
+              Your issue has been successfully submitted and will be reviewed by the authorities.
+            </p>
+            <p className="text-sm text-gray-500">Redirecting to dashboard...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
-      <nav className="bg-white shadow-sm border-b border-secondary-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/dashboard" className="flex items-center">
-              <AlertCircle className="h-8 w-8 text-primary mr-2" />
-              <h1 className="text-2xl font-bold text-gray-900">CIVIC TRACK</h1>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center text-sm text-gray-700">
-                <User className="h-4 w-4 mr-1" />
-                <span>Welcome, {username}</span>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleLogout}
-                className="border-primary text-primary hover:bg-primary hover:text-white bg-transparent"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#b4a7d6] to-[#674ea7] p-4">
+      <div className="container mx-auto max-w-2xl">
+        {/* Header */}
+        <div className="text-center mb-8 pt-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Report an Issue</h1>
+          <p className="text-white/90">Help improve your community by reporting civic issues</p>
         </div>
-      </nav>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
+        <Card className="bg-white/95 backdrop-blur-sm border-white/20">
           <CardHeader>
-            <CardTitle className="text-2xl">Report New Issue</CardTitle>
-            <CardDescription>Help improve your community by reporting civic issues</CardDescription>
+            <CardTitle className="text-[#674ea7]">Issue Details</CardTitle>
+            <CardDescription>Provide detailed information about the issue you want to report</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Image Upload */}
-              <div className="space-y-2">
-                <Label>Upload Image</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img
-                        src={imagePreview || "/placeholder.svg"}
-                        alt="Preview"
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={removeImage}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <div className="flex text-sm text-gray-600">
-                        <label
-                          htmlFor="image-upload"
-                          className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
-                        >
-                          <span>Upload a file</span>
-                          <input
-                            id="image-upload"
-                            name="image-upload"
-                            type="file"
-                            className="sr-only"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                          />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
-                      </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-              {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title">Issue Title *</Label>
                 <Input
                   id="title"
-                  name="title"
                   placeholder="Brief description of the issue"
                   value={formData.title}
-                  onChange={handleInputChange}
-                  required
+                  onChange={(e) => handleInputChange("title", e.target.value)}
+                  className="border-[#b4a7d6]/20 focus:border-[#674ea7]"
                 />
               </div>
 
-              {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  placeholder="Provide detailed information about the issue..."
-                  rows={4}
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              {/* Category */}
-              <div className="space-y-2">
-                <Label>Category *</Label>
-                <Select value={formData.category} onValueChange={handleCategoryChange} required>
-                  <SelectTrigger>
+                <Label htmlFor="category">Category *</Label>
+                <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
+                  <SelectTrigger className="border-[#b4a7d6]/20 focus:border-[#674ea7]">
                     <SelectValue placeholder="Select issue category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Roads">Roads (potholes, obstructions)</SelectItem>
-                    <SelectItem value="Lighting">Lighting (broken or flickering lights)</SelectItem>
-                    <SelectItem value="Water Supply">Water Supply (leaks, low pressure)</SelectItem>
-                    <SelectItem value="Cleanliness">Cleanliness (overflowing bins, garbage)</SelectItem>
-                    <SelectItem value="Public Safety">Public Safety (open manholes, exposed wiring)</SelectItem>
-                    <SelectItem value="Obstructions">Obstructions (fallen trees, debris)</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Address */}
               <div className="space-y-2">
-                <Label htmlFor="address">Address/Location</Label>
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Provide detailed description of the issue..."
+                  value={formData.description}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  rows={4}
+                  className="border-[#b4a7d6]/20 focus:border-[#674ea7]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Location *</Label>
                 <div className="flex gap-2">
                   <Input
                     id="address"
-                    name="address"
-                    placeholder="Where is this issue located?"
+                    placeholder="Enter the address or location"
                     value={formData.address}
-                    onChange={handleInputChange}
-                    className="flex-1"
+                    onChange={(e) => handleInputChange("address", e.target.value)}
+                    className="flex-1 border-[#b4a7d6]/20 focus:border-[#674ea7]"
                   />
                   <Button
                     type="button"
                     variant="outline"
                     onClick={detectLocation}
                     disabled={isDetectingLocation}
-                    className="border-primary text-primary hover:bg-primary hover:text-white bg-transparent"
+                    className="border-[#b4a7d6] text-[#674ea7] hover:bg-[#b4a7d6]/10 bg-transparent"
                   >
-                    <MapPin className="h-4 w-4 mr-1" />
-                    {isDetectingLocation ? "Detecting..." : "Auto-Detect"}
+                    {isDetectingLocation ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MapPin className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
+                {isDetectingLocation && <p className="text-sm text-gray-500">Detecting your location...</p>}
               </div>
 
-              {/* Submit Button */}
-              <div className="flex gap-4">
-                <Button
-                  type="submit"
-                  className="flex-1 bg-primary hover:bg-primary-700 text-white"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Submitting Issue..." : "Submit Issue"}
-                </Button>
-                <Link href="/dashboard">
-                  <Button type="button" variant="outline">
-                    Cancel
-                  </Button>
-                </Link>
+              <div className="space-y-2">
+                <Label htmlFor="images">Images (Optional)</Label>
+                <div className="border-2 border-dashed border-[#b4a7d6]/30 rounded-lg p-6 text-center">
+                  <Camera className="mx-auto h-12 w-12 text-[#b4a7d6] mb-4" />
+                  <div className="space-y-2">
+                    <Label htmlFor="images" className="cursor-pointer">
+                      <span className="text-[#674ea7] hover:underline">Click to upload images</span>
+                      <span className="text-gray-500"> or drag and drop</span>
+                    </Label>
+                    <Input
+                      id="images"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
+                  </div>
+                </div>
+
+                {formData.images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                    {formData.images.map((file, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={URL.createObjectURL(file) || "/placeholder.svg"}
+                          alt={`Upload ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                          onClick={() => removeImage(index)}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              <Button type="submit" className="w-full bg-[#674ea7] hover:bg-[#674ea7]/90" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting Issue...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Submit Issue
+                  </>
+                )}
+              </Button>
             </form>
           </CardContent>
         </Card>

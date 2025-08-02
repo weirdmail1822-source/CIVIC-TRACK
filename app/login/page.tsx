@@ -3,155 +3,134 @@
 import type React from "react"
 
 import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { AlertCircle, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { appStore } from "@/lib/store"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Eye, EyeOff, LogIn } from "lucide-react"
+import { useStore } from "@/lib/store"
+import { useRouter } from "next/navigation"
 
-export default function LoginPage() {
+export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const { login } = useStore()
   const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError("")
+    setIsLoading(true)
 
-    // Check for admin credentials
-    if (email === "admin@civictrack.com" && password === "admin123") {
-      localStorage.setItem("isAuthenticated", "true")
-      localStorage.setItem("username", "admin")
-      localStorage.setItem("userRole", "admin")
-      localStorage.setItem("userEmail", email)
-      router.push("/admin")
-      return
-    }
-
-    // Mock user authentication
-    setTimeout(() => {
-      if (email && password) {
-        const username = email.split("@")[0]
-        const user = appStore.getUser(username)
-
-        if (user && user.isBanned) {
-          setError("Your account has been banned. Please contact support.")
-          setIsLoading(false)
-          return
+    try {
+      const success = await login(email, password)
+      if (success) {
+        // Check if admin
+        if (email === "admin@civictrack.com") {
+          router.push("/admin")
+        } else {
+          router.push("/dashboard")
         }
-
-        // Store auth state
-        localStorage.setItem("isAuthenticated", "true")
-        localStorage.setItem("username", username)
-        localStorage.setItem("userRole", "user")
-        localStorage.setItem("userEmail", email)
-
-        // Add user if doesn't exist
-        if (!user) {
-          appStore.addUser({
-            username,
-            email,
-            role: "user",
-            isBanned: false,
-          })
-        }
-
-        router.push("/dashboard")
       } else {
-        setError("Please enter valid credentials")
+        setError("Invalid email or password")
       }
+    } catch (err) {
+      setError("An error occurred during login")
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Navigation Bar */}
-      <nav className="bg-white shadow-sm border-b border-secondary-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center">
-              <AlertCircle className="h-8 w-8 text-primary mr-2" />
-              <h1 className="text-2xl font-bold text-gray-900">CIVIC TRACK</h1>
-            </Link>
+    <div className="min-h-screen bg-gradient-to-br from-[#b4a7d6] to-[#674ea7] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-white/20">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[#b4a7d6] to-[#674ea7] rounded-full flex items-center justify-center mb-4">
+            <LogIn className="w-8 h-8 text-white" />
           </div>
-        </div>
-      </nav>
+          <CardTitle className="text-2xl font-bold text-[#674ea7]">Welcome Back</CardTitle>
+          <CardDescription>Sign in to your Civic Track account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-      {/* Login Form */}
-      <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-            <CardDescription>Sign in to your CIVIC TRACK account</CardDescription>
-            <div className="mt-4 p-3 bg-secondary-100 rounded-lg text-sm">
-              <p className="font-medium text-primary">Admin Login:</p>
-              <p>Email: admin@civictrack.com</p>
-              <p>Password: admin123</p>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="border-[#b4a7d6]/20 focus:border-[#674ea7]"
+              />
             </div>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
+                  className="border-[#b4a7d6]/20 focus:border-[#674ea7] pr-10"
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              {error && <div className="text-red-600 text-sm">{error}</div>}
-              <Button type="submit" className="w-full bg-primary hover:bg-primary-700 text-white" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Login"}
-              </Button>
-            </form>
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                {"Don't have an account? "}
-                <Link href="/register" className="text-primary hover:text-primary-700 font-medium">
-                  Sign up here
-                </Link>
-              </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+
+            <Button type="submit" className="w-full bg-[#674ea7] hover:bg-[#674ea7]/90" disabled={isLoading}>
+              {isLoading ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{" "}
+              <a href="/register" className="text-[#674ea7] hover:underline font-medium">
+                Sign up
+              </a>
+            </p>
+          </div>
+
+          <div className="mt-4 p-4 bg-[#b4a7d6]/10 rounded-lg">
+            <p className="text-sm font-medium text-[#674ea7] mb-2">Demo Accounts:</p>
+            <div className="text-xs text-gray-600 space-y-1">
+              <div>
+                <strong>Admin:</strong> admin@civictrack.com / admin123
+              </div>
+              <div>
+                <strong>User:</strong> john@example.com / password123
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
