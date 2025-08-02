@@ -3,335 +3,299 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { AlertCircle, MapPin, Camera, LogOut, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { MapPin, Camera, Send, Loader2, CheckCircle } from "lucide-react"
-import { useStore } from "@/lib/store"
-import { useRouter } from "next/navigation"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { appStore } from "@/lib/store"
+import { toast } from "sonner"
 
-export default function ReportIssue() {
+export default function ReportPage() {
+  const [username, setUsername] = useState("")
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
     address: "",
-    images: [] as File[],
+    image: "",
   })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
-  const [error, setError] = useState("")
-  const [isDetectingLocation, setIsDetectingLocation] = useState(false)
-  const { currentUser, addIssue } = useStore()
+  const [isLoading, setIsLoading] = useState(false)
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const router = useRouter()
 
-  const categories = [
-    "Road Maintenance",
-    "Street Lighting",
-    "Waste Management",
-    "Water Supply",
-    "Public Safety",
-    "Parks & Recreation",
-    "Traffic Management",
-    "Noise Pollution",
-  ]
-
   useEffect(() => {
-    if (!currentUser) {
+    // Check authentication
+    const isAuth = localStorage.getItem("isAuthenticated")
+    const storedUsername = localStorage.getItem("username")
+
+    if (!isAuth) {
       router.push("/login")
+      return
     }
-  }, [currentUser, router])
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    setError("")
-  }
+    if (storedUsername) {
+      setUsername(storedUsername)
+    }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    setFormData((prev) => ({ ...prev, images: [...prev.images, ...files] }))
-  }
-
-  const removeImage = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }))
-  }
-
-  const detectLocation = () => {
-    setIsDetectingLocation(true)
-
-    if ("geolocation" in navigator) {
+    // Get user's location
+    if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            // Simulate reverse geocoding
-            const mockAddresses = [
-              "123 Main Street, Downtown",
-              "456 Oak Avenue, Midtown",
-              "789 Pine Road, Uptown",
-              "321 Elm Street, Westside",
-              "654 Maple Drive, Eastside",
-            ]
-
-            // Simulate API delay
-            await new Promise((resolve) => setTimeout(resolve, 1500))
-
-            const randomAddress = mockAddresses[Math.floor(Math.random() * mockAddresses.length)]
-            handleInputChange("address", randomAddress)
-          } catch (err) {
-            setError("Failed to get address from location")
-          } finally {
-            setIsDetectingLocation(false)
-          }
+        (position) => {
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          })
+          toast.success("Location detected automatically")
         },
         (error) => {
-          setError("Unable to detect location. Please enter address manually.")
-          setIsDetectingLocation(false)
+          console.error("Error getting location:", error)
+          toast.error("Could not detect location. Please enter address manually.")
         },
       )
-    } else {
-      setError("Geolocation is not supported by this browser")
-      setIsDetectingLocation(false)
     }
+  }, [router])
+
+  const handleLogout = () => {
+    localStorage.removeItem("isAuthenticated")
+    localStorage.removeItem("username")
+    localStorage.removeItem("userRole")
+    localStorage.removeItem("userEmail")
+    router.push("/")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
+    setIsLoading(true)
 
-    if (!formData.title.trim()) {
-      setError("Please enter a title")
+    // Validate form
+    if (!formData.title || !formData.description || !formData.category || !formData.address) {
+      toast.error("Please fill in all required fields")
+      setIsLoading(false)
       return
     }
 
-    if (!formData.description.trim()) {
-      setError("Please enter a description")
-      return
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // Create new issue
+    const newIssue = {
+      title: formData.title,
+      description: formData.description,
+      category: formData.category,
+      address: formData.address,
+      reportedDate: new Date().toISOString().split("T")[0],
+      reportedTime: new Date().toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      reportedBy: username,
+      status: "Reported",
+      distance: location ? "0.1" : "1.0", // Mock distance
+      image: formData.image || `/placeholder.svg?height=200&width=300&text=${encodeURIComponent(formData.title)}`,
+      coordinates: location || { lat: 40.7128, lng: -74.006 }, // Default to NYC if no location
     }
 
-    if (!formData.category) {
-      setError("Please select a category")
-      return
-    }
+    const createdIssue = appStore.addIssue(newIssue)
 
-    if (!formData.address.trim()) {
-      setError("Please enter an address")
-      return
-    }
+    toast.success("Issue reported successfully!")
+    router.push(`/issue/${createdIssue.id}`)
 
-    setIsSubmitting(true)
-
-    try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      const newIssue = {
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        address: formData.address,
-        images: formData.images.map((file) => URL.createObjectURL(file)),
-        reporterId: currentUser!.id,
-        reporterName: currentUser!.name,
-      }
-
-      addIssue(newIssue)
-      setIsSuccess(true)
-
-      // Reset form after success
-      setTimeout(() => {
-        setFormData({
-          title: "",
-          description: "",
-          category: "",
-          address: "",
-          images: [],
-        })
-        setIsSuccess(false)
-        router.push("/dashboard")
-      }, 2000)
-    } catch (err) {
-      setError("Failed to submit issue. Please try again.")
-    } finally {
-      setIsSubmitting(false)
-    }
+    setIsLoading(false)
   }
 
-  if (!currentUser) {
-    return null
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    })
   }
 
-  if (isSuccess) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#b4a7d6] to-[#674ea7] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-white/20 text-center">
-          <CardContent className="pt-6">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-[#674ea7] mb-2">Issue Reported!</h2>
-            <p className="text-gray-600 mb-4">
-              Your issue has been successfully submitted and will be reviewed by the authorities.
-            </p>
-            <p className="text-sm text-gray-500">Redirecting to dashboard...</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  const handleCategoryChange = (value: string) => {
+    setFormData({
+      ...formData,
+      category: value,
+    })
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // In a real app, you would upload to a server
+      // For now, we'll just use a placeholder
+      const imageUrl = `/placeholder.svg?height=200&width=300&text=${encodeURIComponent(file.name)}`
+      setFormData({
+        ...formData,
+        image: imageUrl,
+      })
+      toast.success("Image uploaded successfully")
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#b4a7d6] to-[#674ea7] p-4">
-      <div className="container mx-auto max-w-2xl">
-        {/* Header */}
-        <div className="text-center mb-8 pt-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Report an Issue</h1>
-          <p className="text-white/90">Help improve your community by reporting civic issues</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Bar */}
+      <nav className="bg-white shadow-sm border-b border-secondary-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/dashboard" className="flex items-center">
+              <AlertCircle className="h-8 w-8 text-primary mr-2" />
+              <h1 className="text-2xl font-bold text-gray-900">CIVIC TRACK</h1>
+            </Link>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center text-sm text-gray-700">
+                <User className="h-4 w-4 mr-1" />
+                <span>{username}</span>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="border-primary text-primary hover:bg-primary hover:text-white bg-transparent"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </div>
         </div>
+      </nav>
 
-        <Card className="bg-white/95 backdrop-blur-sm border-white/20">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-[#674ea7]">Issue Details</CardTitle>
-            <CardDescription>Provide detailed information about the issue you want to report</CardDescription>
+            <CardTitle className="flex items-center">
+              <AlertCircle className="h-6 w-6 mr-2 text-primary" />
+              Report New Issue
+            </CardTitle>
+            <CardDescription>Help improve your community by reporting civic issues that need attention</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="title">Issue Title *</Label>
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                  Issue Title *
+                </label>
                 <Input
                   id="title"
-                  placeholder="Brief description of the issue"
+                  name="title"
+                  type="text"
+                  required
                   value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  className="border-[#b4a7d6]/20 focus:border-[#674ea7]"
+                  onChange={handleInputChange}
+                  placeholder="Brief description of the issue"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
-                <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
-                  <SelectTrigger className="border-[#b4a7d6]/20 focus:border-[#674ea7]">
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                  Category *
+                </label>
+                <Select value={formData.category} onValueChange={handleCategoryChange}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Select issue category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="Roads">Roads (potholes, cracks, obstructions)</SelectItem>
+                    <SelectItem value="Lighting">Lighting (broken or flickering lights)</SelectItem>
+                    <SelectItem value="Water Supply">Water Supply (leaks, low pressure)</SelectItem>
+                    <SelectItem value="Cleanliness">Cleanliness (overflowing bins, garbage)</SelectItem>
+                    <SelectItem value="Public Safety">Public Safety (open manholes, exposed wiring)</SelectItem>
+                    <SelectItem value="Obstructions">Obstructions (fallen trees, debris)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                  Description *
+                </label>
                 <Textarea
                   id="description"
-                  placeholder="Provide detailed description of the issue..."
+                  name="description"
+                  required
                   value={formData.description}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  onChange={handleInputChange}
+                  placeholder="Provide detailed description of the issue, including any safety concerns or urgency"
                   rows={4}
-                  className="border-[#b4a7d6]/20 focus:border-[#674ea7]"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Location *</Label>
-                <div className="flex gap-2">
+              <div>
+                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                  Location/Address *
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="address"
-                    placeholder="Enter the address or location"
+                    name="address"
+                    type="text"
+                    required
                     value={formData.address}
-                    onChange={(e) => handleInputChange("address", e.target.value)}
-                    className="flex-1 border-[#b4a7d6]/20 focus:border-[#674ea7]"
+                    onChange={handleInputChange}
+                    placeholder={
+                      location ? "Location detected - enter specific address" : "Enter the exact location of the issue"
+                    }
+                    className="pl-10"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={detectLocation}
-                    disabled={isDetectingLocation}
-                    className="border-[#b4a7d6] text-[#674ea7] hover:bg-[#b4a7d6]/10 bg-transparent"
-                  >
-                    {isDetectingLocation ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <MapPin className="h-4 w-4" />
-                    )}
-                  </Button>
                 </div>
-                {isDetectingLocation && <p className="text-sm text-gray-500">Detecting your location...</p>}
+                {location && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ GPS coordinates detected: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="images">Images (Optional)</Label>
-                <div className="border-2 border-dashed border-[#b4a7d6]/30 rounded-lg p-6 text-center">
-                  <Camera className="mx-auto h-12 w-12 text-[#b4a7d6] mb-4" />
-                  <div className="space-y-2">
-                    <Label htmlFor="images" className="cursor-pointer">
-                      <span className="text-[#674ea7] hover:underline">Click to upload images</span>
-                      <span className="text-gray-500"> or drag and drop</span>
-                    </Label>
+              <div>
+                <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
+                  Photo (Optional)
+                </label>
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
                     <Input
-                      id="images"
+                      id="image"
+                      name="image"
                       type="file"
-                      multiple
                       accept="image/*"
                       onChange={handleImageUpload}
-                      className="hidden"
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-700"
                     />
-                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
                   </div>
+                  <Camera className="h-5 w-5 text-gray-400" />
                 </div>
-
-                {formData.images.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                    {formData.images.map((file, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={URL.createObjectURL(file) || "/placeholder.svg"}
-                          alt={`Upload ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                          onClick={() => removeImage(index)}
-                        >
-                          ×
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Adding a photo helps authorities understand and prioritize the issue
+                </p>
               </div>
 
-              <Button type="submit" className="w-full bg-[#674ea7] hover:bg-[#674ea7]/90" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting Issue...
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Submit Issue
-                  </>
-                )}
-              </Button>
+              <div className="bg-secondary-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Before submitting:</h3>
+                <ul className="text-xs text-gray-600 space-y-1">
+                  <li>• Ensure the issue hasn't already been reported</li>
+                  <li>• Provide accurate location information</li>
+                  <li>• Include relevant details that help prioritize the issue</li>
+                  <li>• Avoid reporting emergency situations (call emergency services instead)</li>
+                </ul>
+              </div>
+
+              <div className="flex gap-4">
+                <Button
+                  type="submit"
+                  className="flex-1 bg-primary hover:bg-primary-700 text-white"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Submitting..." : "Submit Report"}
+                </Button>
+                <Link href="/dashboard">
+                  <Button type="button" variant="outline" className="px-8 bg-transparent">
+                    Cancel
+                  </Button>
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>

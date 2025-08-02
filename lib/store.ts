@@ -1,5 +1,3 @@
-import { create } from "zustand"
-
 // Simple store for managing application state
 interface Issue {
   id: number
@@ -25,39 +23,8 @@ interface User {
   isBanned: boolean
 }
 
-interface StoreState {
-  issues: Issue[]
-  users: User[]
-  notifications: Array<{
-    id: string
-    message: string
-    type: "info" | "success" | "warning" | "error"
-    timestamp: Date
-    userId: string
-  }>
-  currentUser: string | null
-  getIssues: () => Issue[]
-  getAllIssues: () => Issue[]
-  getIssueById: (id: number) => Issue | undefined
-  getUserIssues: (username: string) => Issue[]
-  addIssue: (issue: Omit<Issue, "id" | "spamReports" | "isHidden">) => Issue
-  updateIssue: (id: number, updates: Partial<Issue>) => boolean
-  deleteIssue: (id: number) => boolean
-  reportSpam: (issueId: number, reportedBy: string) => void
-  getUser: (username: string) => User | undefined
-  getAllUsers: () => User[]
-  addUser: (user: User) => void
-  banUser: (username: string) => void
-  unbanUser: (username: string) => void
-  setCurrentUser: (username: string | null) => void
-  addNotification: (notification: Omit<StoreState["notifications"][0], "id" | "timestamp">) => void
-  getNotifications: (userId: string) => StoreState["notifications"]
-  updateIssueStatus: (issueId: number, status: string) => void
-  unhideIssue: (issueId: number) => void
-}
-
-export const useStore = create<StoreState>((set, get) => ({
-  issues: [
+class AppStore {
+  private issues: Issue[] = [
     {
       id: 1,
       title: "Broken Street Light",
@@ -90,194 +57,114 @@ export const useStore = create<StoreState>((set, get) => ({
       spamReports: [],
       isHidden: false,
     },
-  ],
-  users: [
+  ]
+
+  private users: User[] = [
     {
       username: "admin",
       email: "admin@civictrack.com",
       role: "admin",
       isBanned: false,
     },
-  ],
-  notifications: [],
-  currentUser: null,
+  ]
 
-  getIssues: () => get().issues.filter((issue) => !issue.isHidden),
-  getAllIssues: () => get().issues,
-  getIssueById: (id: number) => get().issues.find((issue) => issue.id === id),
-  getUserIssues: (username: string) => get().issues.filter((issue) => issue.reportedBy === username && !issue.isHidden),
+  private notifications: Array<{
+    id: string
+    message: string
+    type: "info" | "success" | "warning" | "error"
+    timestamp: Date
+    userId: string
+  }> = []
 
-  addIssue: (issue) => {
-    const state = get()
+  getIssues() {
+    return this.issues.filter((issue) => !issue.isHidden)
+  }
+
+  getAllIssues() {
+    return this.issues
+  }
+
+  getIssueById(id: number) {
+    return this.issues.find((issue) => issue.id === id)
+  }
+
+  getUserIssues(username: string) {
+    return this.issues.filter((issue) => issue.reportedBy === username && !issue.isHidden)
+  }
+
+  addIssue(issue: Omit<Issue, "id" | "spamReports" | "isHidden">) {
     const newIssue: Issue = {
       ...issue,
-      id: Math.max(...state.issues.map((i) => i.id), 0) + 1,
+      id: Math.max(...this.issues.map((i) => i.id), 0) + 1,
       spamReports: [],
       isHidden: false,
     }
-    set({ issues: [...state.issues, newIssue] })
+    this.issues.push(newIssue)
     return newIssue
-  },
+  }
 
-  updateIssue: (id: number, updates: Partial<Issue>) => {
-    const state = get()
-    const issueIndex = state.issues.findIndex((issue) => issue.id === id)
+  updateIssue(id: number, updates: Partial<Issue>) {
+    const issueIndex = this.issues.findIndex((issue) => issue.id === id)
     if (issueIndex === -1) return false
 
-    const updatedIssues = [...state.issues]
-    updatedIssues[issueIndex] = { ...updatedIssues[issueIndex], ...updates }
-    set({ issues: updatedIssues })
+    this.issues[issueIndex] = { ...this.issues[issueIndex], ...updates }
     return true
-  },
+  }
 
-  deleteIssue: (id: number) => {
-    const state = get()
-    const issueIndex = state.issues.findIndex((issue) => issue.id === id)
+  deleteIssue(id: number) {
+    const issueIndex = this.issues.findIndex((issue) => issue.id === id)
     if (issueIndex === -1) return false
 
-    const updatedIssues = state.issues.filter((issue) => issue.id !== id)
-    set({ issues: updatedIssues })
+    this.issues.splice(issueIndex, 1)
     return true
-  },
+  }
 
-  reportSpam: (issueId: number, reportedBy: string) => {
-    const state = get()
-    const issue = state.issues.find((i) => i.id === issueId)
+  reportSpam(issueId: number, reportedBy: string) {
+    const issue = this.issues.find((i) => i.id === issueId)
     if (issue && !issue.spamReports.includes(reportedBy)) {
-      const updatedIssues = state.issues.map((i) => {
-        if (i.id === issueId) {
-          const updatedSpamReports = [...i.spamReports, reportedBy]
-          return {
-            ...i,
-            spamReports: updatedSpamReports,
-            isHidden: updatedSpamReports.length >= 3,
-          }
-        }
-        return i
-      })
+      issue.spamReports.push(reportedBy)
 
-      set({ issues: updatedIssues })
-
-      if (issue.spamReports.length + 1 >= 3) {
-        get().addNotification({
+      // Auto-hide if reported by 3 or more users
+      if (issue.spamReports.length >= 3) {
+        issue.isHidden = true
+        this.addNotification({
           message: `Issue "${issue.title}" has been auto-hidden due to multiple spam reports`,
           type: "warning",
           userId: "admin",
         })
       }
     }
-  },
-
-  getUser: (username: string) => get().users.find((user) => user.username === username),
-  getAllUsers: () => get().users,
-
-  addUser: (user: User) => {
-    const state = get()
-    set({ users: [...state.users, user] })
-  },
-
-  banUser: (username: string) => {
-    const state = get()
-    const updatedUsers = state.users.map((user) => (user.username === username ? { ...user, isBanned: true } : user))
-    set({ users: updatedUsers })
-  },
-
-  unbanUser: (username: string) => {
-    const state = get()
-    const updatedUsers = state.users.map((user) => (user.username === username ? { ...user, isBanned: false } : user))
-    set({ users: updatedUsers })
-  },
-
-  setCurrentUser: (username: string | null) => set({ currentUser: username }),
-
-  addNotification: (notification) => {
-    const state = get()
-    const newNotification = {
-      ...notification,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-    }
-    set({ notifications: [...state.notifications, newNotification] })
-  },
-
-  getNotifications: (userId: string) => {
-    const state = get()
-    return state.notifications.filter((n) => n.userId === userId || n.userId === "all")
-  },
-
-  updateIssueStatus: (issueId: number, status: string) => {
-    const state = get()
-    const updatedIssues = state.issues.map((issue) => (issue.id === issueId ? { ...issue, status } : issue))
-    set({ issues: updatedIssues })
-  },
-
-  unhideIssue: (issueId: number) => {
-    const state = get()
-    const updatedIssues = state.issues.map((issue) =>
-      issue.id === issueId ? { ...issue, isHidden: false, spamReports: [] } : issue,
-    )
-    set({ issues: updatedIssues })
-  },
-}))
-
-// Legacy compatibility - keeping the old appStore for existing code
-class AppStore {
-  getIssues() {
-    return useStore.getState().getIssues()
-  }
-
-  getAllIssues() {
-    return useStore.getState().getAllIssues()
-  }
-
-  getIssueById(id: number) {
-    return useStore.getState().getIssueById(id)
-  }
-
-  getUserIssues(username: string) {
-    return useStore.getState().getUserIssues(username)
-  }
-
-  addIssue(issue: Omit<Issue, "id" | "spamReports" | "isHidden">) {
-    return useStore.getState().addIssue(issue)
-  }
-
-  updateIssue(id: number, updates: Partial<Issue>) {
-    return useStore.getState().updateIssue(id, updates)
-  }
-
-  deleteIssue(id: number) {
-    return useStore.getState().deleteIssue(id)
-  }
-
-  reportSpam(issueId: number, reportedBy: string) {
-    return useStore.getState().reportSpam(issueId, reportedBy)
   }
 
   getUser(username: string) {
-    return useStore.getState().getUser(username)
+    return this.users.find((user) => user.username === username)
   }
 
   getAllUsers() {
-    return useStore.getState().getAllUsers()
+    return this.users
   }
 
   addUser(user: User) {
-    return useStore.getState().addUser(user)
+    this.users.push(user)
   }
 
   banUser(username: string) {
-    return useStore.getState().banUser(username)
+    const user = this.users.find((u) => u.username === username)
+    if (user) {
+      user.isBanned = true
+    }
   }
 
   unbanUser(username: string) {
-    return useStore.getState().unbanUser(username)
+    const user = this.users.find((u) => u.username === username)
+    if (user) {
+      user.isBanned = false
+    }
   }
 
   getAnalytics() {
-    const issues = useStore.getState().getAllIssues()
-    const totalIssues = issues.length
-    const categoryStats = issues.reduce(
+    const totalIssues = this.issues.length
+    const categoryStats = this.issues.reduce(
       (acc, issue) => {
         acc[issue.category] = (acc[issue.category] || 0) + 1
         return acc
@@ -285,7 +172,7 @@ class AppStore {
       {} as Record<string, number>,
     )
 
-    const statusStats = issues.reduce(
+    const statusStats = this.issues.reduce(
       (acc, issue) => {
         acc[issue.status] = (acc[issue.status] || 0) + 1
         return acc
@@ -293,8 +180,8 @@ class AppStore {
       {} as Record<string, number>,
     )
 
-    const spamReports = issues.filter((issue) => issue.spamReports.length > 0)
-    const hiddenIssues = issues.filter((issue) => issue.isHidden)
+    const spamReports = this.issues.filter((issue) => issue.spamReports.length > 0)
+    const hiddenIssues = this.issues.filter((issue) => issue.isHidden)
 
     return {
       totalIssues,
@@ -306,20 +193,31 @@ class AppStore {
     }
   }
 
-  addNotification(notification: Parameters<typeof useStore.getState.addNotification>[0]) {
-    return useStore.getState().addNotification(notification)
+  addNotification(notification: Omit<(typeof this.notifications)[0], "id" | "timestamp">) {
+    this.notifications.push({
+      ...notification,
+      id: Date.now().toString(),
+      timestamp: new Date(),
+    })
   }
 
   getNotifications(userId: string) {
-    return useStore.getState().getNotifications(userId)
+    return this.notifications.filter((n) => n.userId === userId || n.userId === "all")
   }
 
   updateIssueStatus(issueId: number, status: string) {
-    return useStore.getState().updateIssueStatus(issueId, status)
+    const issue = this.issues.find((i) => i.id === issueId)
+    if (issue) {
+      issue.status = status
+    }
   }
 
   unhideIssue(issueId: number) {
-    return useStore.getState().unhideIssue(issueId)
+    const issue = this.issues.find((i) => i.id === issueId)
+    if (issue) {
+      issue.isHidden = false
+      issue.spamReports = []
+    }
   }
 }
 

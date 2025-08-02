@@ -3,178 +3,212 @@
 import type React from "react"
 
 import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { AlertCircle, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, UserPlus } from "lucide-react"
-import { useStore } from "@/lib/store"
-import { useRouter } from "next/navigation"
+import { appStore } from "@/lib/store"
+import { toast } from "sonner"
 
-export default function Register() {
+export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    name: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const { register } = useStore()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
+    setIsLoading(true)
 
+    // Validate form
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
+      toast.error("Passwords do not match")
+      setIsLoading(false)
       return
     }
 
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long")
+      toast.error("Password must be at least 6 characters long")
+      setIsLoading(false)
       return
     }
 
-    setIsLoading(true)
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    try {
-      const success = await register(formData.name, formData.email, formData.password)
-      if (success) {
-        router.push("/dashboard")
-      } else {
-        setError("Registration failed. Email may already be in use.")
-      }
-    } catch (err) {
-      setError("An error occurred during registration")
-    } finally {
+    // Check if user already exists
+    const existingUser = appStore.getUser(formData.username)
+    if (existingUser) {
+      toast.error("Username already exists")
       setIsLoading(false)
+      return
     }
+
+    // Create new user
+    const newUser = {
+      username: formData.username,
+      email: formData.email,
+      role: "user" as const,
+      isBanned: false,
+    }
+
+    appStore.addUser(newUser)
+
+    // Auto login
+    localStorage.setItem("isAuthenticated", "true")
+    localStorage.setItem("username", formData.username)
+    localStorage.setItem("userRole", "user")
+    localStorage.setItem("userEmail", formData.email)
+
+    toast.success("Account created successfully!")
+    router.push("/dashboard")
+
+    setIsLoading(false)
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    })
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#b4a7d6] to-[#674ea7] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-white/20">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[#b4a7d6] to-[#674ea7] rounded-full flex items-center justify-center mb-4">
-            <UserPlus className="w-8 h-8 text-white" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-[#674ea7]">Create Account</CardTitle>
-          <CardDescription>Join Civic Track to report and track community issues</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <Link href="/" className="flex items-center justify-center mb-6">
+            <AlertCircle className="h-12 w-12 text-primary mr-3" />
+            <h1 className="text-3xl font-bold text-gray-900">CIVIC TRACK</h1>
+          </Link>
+          <h2 className="text-2xl font-bold text-gray-900">Create your account</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Or{" "}
+            <Link href="/login" className="font-medium text-primary hover:text-primary-700">
+              sign in to your existing account
+            </Link>
+          </p>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Enter your full name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                required
-                className="border-[#b4a7d6]/20 focus:border-[#674ea7]"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                required
-                className="border-[#b4a7d6]/20 focus:border-[#674ea7]"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
+        <Card>
+          <CardHeader>
+            <CardTitle>Register</CardTitle>
+            <CardDescription>Create a new account to start reporting civic issues</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                  Username
+                </label>
                 <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create a password"
-                  value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  id="username"
+                  name="username"
+                  type="text"
                   required
-                  className="border-[#b4a7d6]/20 focus:border-[#674ea7] pr-10"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  className="mt-1"
+                  placeholder="Choose a username"
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
-                  )}
-                </Button>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <div className="relative">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
                 <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
                   required
-                  className="border-[#b4a7d6]/20 focus:border-[#674ea7] pr-10"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="mt-1"
+                  placeholder="Enter your email"
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
-                  )}
-                </Button>
               </div>
-            </div>
 
-            <Button type="submit" className="w-full bg-[#674ea7] hover:bg-[#674ea7]/90" disabled={isLoading}>
-              {isLoading ? "Creating Account..." : "Create Account"}
-            </Button>
-          </form>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <div className="mt-1 relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="Create a password"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{" "}
-              <a href="/login" className="text-[#674ea7] hover:underline font-medium">
-                Sign in
-              </a>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  Confirm Password
+                </label>
+                <div className="mt-1 relative">
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    placeholder="Confirm your password"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full bg-primary hover:bg-primary-700 text-white" disabled={isLoading}>
+                {isLoading ? "Creating account..." : "Create account"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="text-center">
+          <Link href="/" className="text-sm text-gray-600 hover:text-primary">
+            ← Back to Home
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }
