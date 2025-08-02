@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { AlertCircle, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,8 +18,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const returnUrl = searchParams.get("returnUrl")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,13 +65,7 @@ export default function LoginPage() {
       localStorage.setItem("userRole", "user")
       localStorage.setItem("userEmail", email)
       toast.success(`Welcome back, ${username}!`)
-
-      // Navigate to return URL or home page instead of dashboard
-      if (returnUrl) {
-        router.push(returnUrl)
-      } else {
-        router.push("/")
-      }
+      router.push("/dashboard")
     } else {
       toast.error("Please enter valid credentials")
     }
@@ -82,25 +74,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#b4a7d6] to-[#674ea7] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link href="/" className="flex items-center justify-center mb-6">
-            <AlertCircle className="h-12 w-12 text-white mr-3" />
-            <h1 className="text-3xl font-bold text-white">CIVIC TRACK</h1>
+            <AlertCircle className="h-12 w-12 text-primary mr-3" />
+            <h1 className="text-3xl font-bold text-gray-900">CIVIC TRACK</h1>
           </Link>
-          <h2 className="text-2xl font-bold text-white">Sign in to your account</h2>
-          <p className="mt-2 text-sm text-white/80">
+          <h2 className="text-2xl font-bold text-gray-900">Sign in to your account</h2>
+          <p className="mt-2 text-sm text-gray-600">
             Or{" "}
-            <Link href="/register" className="font-medium text-white hover:text-white/80 underline">
+            <Link href="/register" className="font-medium text-primary hover:text-primary-700">
               create a new account
             </Link>
           </p>
         </div>
 
-        <Card className="bg-white/95 backdrop-blur-sm border-white/20">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-[#674ea7]">Login</CardTitle>
+            <CardTitle>Login</CardTitle>
             <CardDescription>Enter your credentials to access your account</CardDescription>
           </CardHeader>
           <CardContent>
@@ -117,7 +109,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 border-[#b4a7d6]/20 focus:border-[#674ea7]"
+                  className="mt-1"
                   placeholder="Enter your email"
                 />
               </div>
@@ -135,7 +127,6 @@ export default function LoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="border-[#b4a7d6]/20 focus:border-[#674ea7]"
                     placeholder="Enter your password"
                   />
                   <button
@@ -154,19 +145,19 @@ export default function LoginPage() {
 
               <div className="flex items-center justify-between">
                 <div className="text-sm">
-                  <Link href="/forgot-password" className="font-medium text-[#674ea7] hover:text-[#674ea7]/80">
+                  <Link href="#" className="font-medium text-primary hover:text-primary-700">
                     Forgot your password?
                   </Link>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-[#674ea7] hover:bg-[#674ea7]/90" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-primary hover:bg-primary-700 text-white" disabled={isLoading}>
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
 
-            <div className="mt-6 p-4 bg-[#b4a7d6]/10 rounded-lg">
-              <h3 className="text-sm font-medium text-[#674ea7] mb-2">Demo Credentials:</h3>
+            <div className="mt-6 p-4 bg-secondary-50 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Demo Credentials:</h3>
               <div className="text-xs text-gray-600 space-y-1">
                 <p>
                   <strong>Admin:</strong> admin@civictrack.com / admin123
@@ -180,7 +171,7 @@ export default function LoginPage() {
         </Card>
 
         <div className="text-center">
-          <Link href="/" className="text-sm text-white/80 hover:text-white">
+          <Link href="/" className="text-sm text-gray-600 hover:text-primary">
             ← Back to Home
           </Link>
         </div>

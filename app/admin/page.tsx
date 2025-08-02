@@ -9,6 +9,7 @@ import {
   User,
   BarChart3,
   Flag,
+  Users,
   Eye,
   EyeOff,
   Trash2,
@@ -41,53 +42,6 @@ export default function AdminPage() {
   const [allUsers, setAllUsers] = useState<any[]>([])
   const [selectedIssue, setSelectedIssue] = useState<any>(null)
   const router = useRouter()
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john.doe@example.com",
-      ipAddress: "192.168.1.1",
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      ipAddress: "10.0.0.2",
-      status: "banned",
-    },
-    {
-      id: 3,
-      name: "Alice Johnson",
-      email: "alice.johnson@example.com",
-      ipAddress: "172.16.0.3",
-      status: "active",
-    },
-  ])
-  const [issues, setIssues] = useState([
-    {
-      id: 101,
-      reporterId: 1,
-      title: "Pothole on Main Street",
-      description: "A large pothole is causing damage to vehicles.",
-      status: "reported",
-    },
-    {
-      id: 102,
-      reporterId: 2,
-      title: "Streetlight Outage",
-      description: "The streetlight at the corner of Elm and Oak is not working.",
-      status: "in progress",
-    },
-    {
-      id: 103,
-      reporterId: 1,
-      title: "Graffiti on Building",
-      description: "There is graffiti on the side of the community center.",
-      status: "resolved",
-    },
-  ])
-  const [totalIssues, setTotalIssues] = useState(100)
 
   useEffect(() => {
     // Check admin authentication
@@ -168,14 +122,6 @@ export default function AdminPage() {
       default:
         return "bg-secondary-200 text-secondary-800 border-secondary-300"
     }
-  }
-
-  const toggleUserStatus = (userId: number) => {
-    setUsers(
-      users.map((user) =>
-        user.id === userId ? { ...user, status: user.status === "active" ? "banned" : "active" } : user,
-      ),
-    )
   }
 
   if (!analytics) {
@@ -358,34 +304,6 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
             </div>
-            <Card className="border-[#b4a7d6]/20">
-              <CardHeader>
-                <CardTitle className="text-[#674ea7]">Reports by Location</CardTitle>
-                <CardDescription>Issue reports from different IP addresses</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[
-                    { ip: "192.168.1.100", location: "Downtown Area", reports: Math.floor(totalIssues * 0.3) },
-                    { ip: "10.0.0.50", location: "Residential District", reports: Math.floor(totalIssues * 0.25) },
-                    { ip: "172.16.0.25", location: "Business District", reports: Math.floor(totalIssues * 0.2) },
-                    { ip: "192.168.2.75", location: "Suburban Area", reports: Math.floor(totalIssues * 0.15) },
-                    { ip: "203.0.113.45", location: "Industrial Zone", reports: Math.floor(totalIssues * 0.1) },
-                  ].map((item) => (
-                    <div
-                      key={item.ip}
-                      className="flex justify-between items-center p-3 border border-[#b4a7d6]/20 rounded-lg"
-                    >
-                      <div>
-                        <span className="font-mono text-sm text-[#674ea7]">{item.ip}</span>
-                        <p className="text-xs text-gray-500">{item.location}</p>
-                      </div>
-                      <Badge variant="secondary">{item.reports} reports</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="moderation" className="space-y-6">
@@ -483,66 +401,76 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            <Card className="border-[#b4a7d6]/20">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-[#674ea7]">User Management</CardTitle>
-                <CardDescription>Manage registered users and their access</CardDescription>
+                <CardTitle className="flex items-center">
+                  <Users className="h-5 w-5 mr-2" />
+                  User Management
+                </CardTitle>
+                <CardDescription>Manage user accounts and permissions</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>User ID</TableHead>
-                      <TableHead>Name</TableHead>
+                      <TableHead>Username</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>IP Address</TableHead>
-                      <TableHead>Issues Reported</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Issues Reported</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user, index) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">#{index + 1}</TableCell>
-                        <TableCell>{user.name}</TableCell>
+                    {allUsers.map((user, index) => (
+                      <TableRow key={user.username}>
+                        <TableCell>#{index + 1}</TableCell>
+                        <TableCell>{user.username}</TableCell>
                         <TableCell>{user.email}</TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {user.ipAddress || `192.168.1.${Math.floor(Math.random() * 255)}`}
-                        </TableCell>
-                        <TableCell>{issues.filter((issue) => issue.reporterId === user.id).length}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={user.status === "active" ? "default" : "destructive"}
                             className={
-                              user.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                              user.role === "admin"
+                                ? "bg-primary-100 text-primary-800"
+                                : "bg-secondary-100 text-secondary-800"
                             }
                           >
-                            {user.status || "active"}
+                            {user.role}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-[#b4a7d6] text-[#674ea7] bg-transparent"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={user.status === "banned" ? "default" : "destructive"}
-                              onClick={() => toggleUserStatus(user.id)}
-                              className={user.status === "banned" ? "bg-green-600 hover:bg-green-700" : ""}
-                            >
-                              {user.status === "banned" ? (
-                                <UserCheck className="h-4 w-4" />
+                          <Badge className={user.isBanned ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
+                            {user.isBanned ? "Banned" : "Active"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{appStore.getUserIssues(user.username).length}</TableCell>
+                        <TableCell>
+                          {user.role !== "admin" && (
+                            <div className="flex gap-2">
+                              {user.isBanned ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUnbanUser(user.username)}
+                                  className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                                >
+                                  <UserCheck className="h-4 w-4 mr-1" />
+                                  Unban
+                                </Button>
                               ) : (
-                                <Ban className="h-4 w-4" />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleBanUser(user.username)}
+                                  className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                                >
+                                  <Ban className="h-4 w-4 mr-1" />
+                                  Ban
+                                </Button>
                               )}
-                            </Button>
-                          </div>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

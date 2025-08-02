@@ -2,8 +2,14 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import {
   Sidebar,
   SidebarContent,
@@ -18,13 +24,9 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
+  SidebarSeparator,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,130 +37,110 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
   Home,
-  Plus,
-  Search,
-  Settings,
-  Users,
   FileText,
-  BarChart3,
+  PlusCircle,
+  Settings,
+  Search,
   Moon,
   Sun,
-  LogOut,
   User,
+  LogOut,
   Bell,
   Shield,
+  BarChart3,
+  Users,
+  MapPin,
   AlertTriangle,
-  CheckCircle,
-  Clock,
 } from "lucide-react"
 import { useTheme } from "next-themes"
-import Link from "next/link"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [username, setUsername] = useState("")
-  const [userRole, setUserRole] = useState("")
-  const [searchTerm, setSearchTerm] = useState("")
+  const pathname = usePathname()
   const { theme, setTheme } = useTheme()
-  const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState("")
 
-  useEffect(() => {
-    const storedUsername = localStorage.getItem("username")
-    const storedUserRole = localStorage.getItem("userRole")
-
-    if (storedUsername) setUsername(storedUsername)
-    if (storedUserRole) setUserRole(storedUserRole)
-  }, [])
-
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated")
-    localStorage.removeItem("username")
-    localStorage.removeItem("userRole")
-    localStorage.removeItem("userEmail")
-    router.push("/")
+  // Mock user data
+  const user = {
+    name: "John Doe",
+    email: "john@example.com",
+    avatar: "/placeholder-user.jpg",
+    role: "Admin",
   }
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark")
-  }
-
-  // Mock user issues data
-  const userIssues = [
-    { id: 1, title: "Broken Street Light", status: "In Progress", category: "Street Lighting" },
-    { id: 2, title: "Pothole on Main St", status: "Resolved", category: "Road Maintenance" },
-    { id: 3, title: "Garbage Collection", status: "Reported", category: "Waste Management" },
-  ]
-
+  // Navigation items
   const navigationItems = [
     {
       title: "Overview",
       items: [
         { title: "Dashboard", url: "/dashboard", icon: Home },
-        { title: "All Issues", url: "/", icon: FileText },
-        { title: "Report Issue", url: "/report", icon: Plus },
+        { title: "My Issues", url: "/dashboard/issues", icon: FileText },
+        { title: "Report Issue", url: "/report", icon: PlusCircle },
       ],
     },
     {
       title: "Community",
       items: [
-        { title: "My Issues", url: "/dashboard/my-issues", icon: User },
-        { title: "Notifications", url: "/dashboard/notifications", icon: Bell },
+        { title: "All Issues", url: "/dashboard/all-issues", icon: AlertTriangle },
+        { title: "Map View", url: "/dashboard/map", icon: MapPin },
+        { title: "Statistics", url: "/dashboard/stats", icon: BarChart3 },
       ],
     },
   ]
 
-  if (userRole === "admin") {
-    navigationItems.push({
-      title: "Administration",
-      items: [
-        { title: "Admin Panel", url: "/admin", icon: Shield },
-        { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
-        { title: "User Management", url: "/admin/users", icon: Users },
-      ],
-    })
-  }
+  // Admin navigation items
+  const adminItems = [
+    { title: "Admin Panel", url: "/admin", icon: Shield },
+    { title: "User Management", url: "/admin/users", icon: Users },
+    { title: "Reports", url: "/admin/reports", icon: BarChart3 },
+  ]
+
+  const isActive = (url: string) => pathname === url
 
   return (
     <SidebarProvider>
-      <Sidebar variant="inset" className="bg-gradient-to-b from-[#b4a7d6] to-[#674ea7]">
-        <SidebarHeader className="border-b border-white/20">
-          <div className="flex items-center gap-2 px-4 py-2">
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white/20 text-white">
-              <AlertTriangle className="size-4" />
+      <Sidebar variant="inset" className="border-r">
+        <SidebarHeader className="border-b px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#b4a7d6] to-[#674ea7] rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">CT</span>
             </div>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold text-white">CIVIC TRACK</span>
-              <span className="truncate text-xs text-white/70">Community Platform</span>
-            </div>
-          </div>
-
-          {/* Search Bar */}
-          <div className="px-4 pb-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-white/70" />
-              <Input
-                placeholder="Search issues..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 bg-white/20 border-white/30 text-white placeholder:text-white/70 focus:bg-white/30"
-              />
+            <div>
+              <h2 className="font-semibold text-lg">Civic Track</h2>
+              <p className="text-xs text-muted-foreground">Community Dashboard</p>
             </div>
           </div>
         </SidebarHeader>
 
-        <SidebarContent>
-          {navigationItems.map((group) => (
-            <SidebarGroup key={group.title}>
-              <SidebarGroupLabel className="text-white/90">{group.title}</SidebarGroupLabel>
+        <SidebarContent className="px-4 py-4">
+          {/* Search */}
+          <SidebarGroup>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-9"
+              />
+            </div>
+          </SidebarGroup>
+
+          <SidebarSeparator />
+
+          {/* Navigation */}
+          {navigationItems.map((section) => (
+            <SidebarGroup key={section.title}>
+              <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {group.items.map((item) => (
+                  {section.items.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild className="text-white/80 hover:bg-white/20 hover:text-white">
-                        <Link href={item.url}>
+                      <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                        <Link href={item.url} className="flex items-center gap-3">
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
                         </Link>
@@ -170,121 +152,159 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </SidebarGroup>
           ))}
 
+          {/* Report Issue Button */}
+          <SidebarGroup>
+            <Button asChild className="w-full bg-gradient-to-r from-[#b4a7d6] to-[#674ea7] text-white hover:opacity-90">
+              <Link href="/report">
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Report an Issue
+              </Link>
+            </Button>
+          </SidebarGroup>
+
+          <SidebarSeparator />
+
           {/* My Issues Section */}
           <SidebarGroup>
-            <SidebarGroupLabel className="text-white/90">My Issues</SidebarGroupLabel>
+            <SidebarGroupLabel className="flex items-center justify-between">
+              My Issues
+              <Badge variant="secondary" className="text-xs">
+                3
+              </Badge>
+            </SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-2 px-2">
-                {userIssues.map((issue) => (
-                  <div key={issue.id} className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-white truncate">{issue.title}</span>
-                      <Badge
-                        variant="secondary"
-                        className={`text-xs ${
-                          issue.status === "Resolved"
-                            ? "bg-green-100 text-green-800"
-                            : issue.status === "In Progress"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-orange-100 text-orange-800"
-                        }`}
-                      >
-                        {issue.status === "Resolved" && <CheckCircle className="h-3 w-3 mr-1" />}
-                        {issue.status === "In Progress" && <Clock className="h-3 w-3 mr-1" />}
-                        {issue.status === "Reported" && <AlertTriangle className="h-3 w-3 mr-1" />}
-                        {issue.status}
-                      </Badge>
-                    </div>
-                    <span className="text-xs text-white/70">{issue.category}</span>
-                  </div>
-                ))}
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent">
+                  <span className="truncate">Broken streetlight</span>
+                  <Badge variant="outline" className="text-xs">
+                    Open
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent">
+                  <span className="truncate">Pothole on Main St</span>
+                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                    Progress
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent">
+                  <span className="truncate">Graffiti removal</span>
+                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                    Resolved
+                  </Badge>
+                </div>
               </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarSeparator />
+
+          {/* Admin Section (if user is admin) */}
+          {user.role === "Admin" && (
+            <SidebarGroup>
+              <SidebarGroupLabel>Administration</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {adminItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                        <Link href={item.url} className="flex items-center gap-3">
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+
+          {/* Settings */}
+          <SidebarGroup>
+            <SidebarGroupLabel>Settings</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/settings")}>
+                    <Link href="/settings" className="flex items-center gap-3">
+                      <Settings className="h-4 w-4" />
+                      <span>Preferences</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-white/20">
-          {/* Report Issue Button */}
-          <div className="px-2 pb-2">
-            <Button asChild className="w-full bg-white text-[#674ea7] hover:bg-gray-100">
-              <Link href="/report">
-                <Plus className="h-4 w-4 mr-2" />
-                Report Issue
-              </Link>
-            </Button>
-          </div>
-
+        <SidebarFooter className="border-t p-4">
           {/* Dark Mode Toggle */}
-          <div className="flex items-center justify-between px-4 py-2">
-            <span className="text-sm text-white/80">Dark Mode</span>
-            <div className="flex items-center space-x-2">
-              <Sun className="h-4 w-4 text-white/60" />
-              <Switch
-                checked={theme === "dark"}
-                onCheckedChange={toggleTheme}
-                className="data-[state=checked]:bg-white/30"
-              />
-              <Moon className="h-4 w-4 text-white/60" />
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-medium">Dark Mode</span>
+            <div className="flex items-center gap-2">
+              <Sun className="h-4 w-4" />
+              <Switch checked={theme === "dark"} onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")} />
+              <Moon className="h-4 w-4" />
             </div>
           </div>
 
           {/* User Profile */}
-          <div className="px-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/20">
-                  <Avatar className="h-8 w-8 mr-3">
-                    <AvatarImage src="/placeholder-user.jpg" />
-                    <AvatarFallback className="bg-white text-[#674ea7]">
-                      {username.slice(0, 2).toUpperCase()}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start p-2 h-auto">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+                    <AvatarFallback>
+                      {user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col items-start">
-                    <span className="text-sm font-medium">{username}</span>
-                    <span className="text-xs text-white/70 capitalize">{userRole}</span>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/profile">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Bell className="mr-2 h-4 w-4" />
+                <span>Notifications</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </SidebarFooter>
+
         <SidebarRail />
       </Sidebar>
 
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/report">
-                <Plus className="h-4 w-4 mr-2" />
-                Report Issue
-              </Link>
-            </Button>
-          </div>
+          <div className="flex-1" />
+          <Button variant="ghost" size="icon">
+            <Bell className="h-4 w-4" />
+          </Button>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
+        <main className="flex-1">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   )
