@@ -71,41 +71,45 @@ export default function ReportPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Validate form
-    if (!formData.title || !formData.description || !formData.category || !formData.address) {
-      toast.error("Please fill in all required fields")
+    try {
+      // Validate form
+      if (!formData.title || !formData.description || !formData.category || !formData.address) {
+        toast.error("Please fill in all required fields")
+        setIsLoading(false)
+        return
+      }
+
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Create new issue
+      const newIssue = {
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        address: formData.address,
+        reportedDate: new Date().toISOString().split("T")[0],
+        reportedBy: username,
+        status: "Reported",
+        distance: location ? "0.1" : "1.0", // Mock distance
+        image: formData.image || `/placeholder.svg?height=200&width=300&text=${encodeURIComponent(formData.title)}`,
+        coordinates: location ? [location.lat, location.lng] : [40.7128, -74.006], // Default to NYC if no location
+        spamReports: [],
+        isHidden: false,
+      }
+
+      const createdIssue = appStore.addIssue(newIssue)
+
+      toast.success("Issue reported successfully!")
+
+      // Navigate to the issue detail page
+      router.push(`/issue/${createdIssue.id}`)
+    } catch (error) {
+      console.error("Error submitting issue:", error)
+      toast.error("Failed to submit issue. Please try again.")
+    } finally {
       setIsLoading(false)
-      return
     }
-
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Create new issue
-    const newIssue = {
-      title: formData.title,
-      description: formData.description,
-      category: formData.category,
-      address: formData.address,
-      reportedDate: new Date().toISOString().split("T")[0],
-      reportedTime: new Date().toLocaleTimeString("en-US", {
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      reportedBy: username,
-      status: "Reported",
-      distance: location ? "0.1" : "1.0", // Mock distance
-      image: formData.image || `/placeholder.svg?height=200&width=300&text=${encodeURIComponent(formData.title)}`,
-      coordinates: location || { lat: 40.7128, lng: -74.006 }, // Default to NYC if no location
-    }
-
-    const createdIssue = appStore.addIssue(newIssue)
-
-    toast.success("Issue reported successfully!")
-    router.push(`/issue/${createdIssue.id}`)
-
-    setIsLoading(false)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -142,7 +146,7 @@ export default function ReportPage() {
       <nav className="bg-white shadow-sm border-b border-secondary-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/dashboard" className="flex items-center">
+            <Link href="/" className="flex items-center">
               <AlertCircle className="h-8 w-8 text-primary mr-2" />
               <h1 className="text-2xl font-bold text-gray-900">CIVIC TRACK</h1>
             </Link>
@@ -290,7 +294,7 @@ export default function ReportPage() {
                 >
                   {isLoading ? "Submitting..." : "Submit Report"}
                 </Button>
-                <Link href="/dashboard">
+                <Link href="/">
                   <Button type="button" variant="outline" className="px-8 bg-transparent">
                     Cancel
                   </Button>
