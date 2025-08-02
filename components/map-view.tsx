@@ -7,20 +7,7 @@ interface MapViewProps {
   address: string
   className?: string
 }
-export function MapView({ coordinates, address, className = "h-48" }: MapViewProps) {
-  const handleMapClick = () => {
-    let mapUrl = "";
 
-    if (coordinates) {
-      mapUrl = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
-    } else if (address) {
-      mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-    }
-
-    if (mapUrl) {
-      window.open(mapUrl, "_blank");
-    }
-  };
 export function MapView({ coordinates, address, className = "h-48" }: MapViewProps) {
   return (
     <div className={`bg-secondary-100 rounded-lg flex items-center justify-center ${className}`}>
